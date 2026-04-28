@@ -1,3 +1,4 @@
+import traceback
 from functools import partial
 
 from facefusion import ffmpeg
@@ -72,18 +73,21 @@ def process_image() -> ErrorCode:
 	for processor_module in get_processors_modules(state_manager.get_item('processors')):
 		logger.info(translator.get('processing'), processor_module.__name__)
 
-		temp_vision_frame, temp_vision_mask = processor_module.process_frame(
-		{
-			'reference_vision_frame': reference_vision_frame,
-			'source_vision_frames': source_vision_frames,
-			'source_audio_frame': source_audio_frame,
-			'source_voice_frame': source_voice_frame,
-			'target_vision_frame': target_vision_frame[:, :, :3],
-			'temp_vision_frame': temp_vision_frame[:, :, :3],
-			'temp_vision_mask': temp_vision_mask
-		})
-
-		processor_module.post_process()
+		try:
+			temp_vision_frame, temp_vision_mask = processor_module.process_frame(
+			{
+				'reference_vision_frame': reference_vision_frame,
+				'source_vision_frames': source_vision_frames,
+				'source_audio_frame': source_audio_frame,
+				'source_voice_frame': source_voice_frame,
+				'target_vision_frame': target_vision_frame[:, :, :3],
+				'temp_vision_frame': temp_vision_frame[:, :, :3],
+				'temp_vision_mask': temp_vision_mask
+			})
+			processor_module.post_process()
+		except Exception as exception:
+			logger.error(f'image_processing_failed: processor={processor_module.__name__}: {exception}\n{traceback.format_exc()}', __name__)
+			return 1
 
 	temp_vision_frame = conditional_merge_vision_mask(temp_vision_frame, temp_vision_mask)
 	write_image(temp_image_path, temp_vision_frame)
