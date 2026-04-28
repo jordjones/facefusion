@@ -8,7 +8,7 @@ from time import time
 from facefusion import benchmarker, cli_helper, content_analyser, face_classifier, face_detector, face_landmarker, face_masker, face_recognizer, hash_helper, logger, state_manager, translator, voice_extractor
 from facefusion.args import apply_args, collect_job_args, reduce_job_args, reduce_step_args
 from facefusion.download import conditional_download_hashes, conditional_download_sources
-from facefusion.exit_helper import hard_exit, signal_exit
+from facefusion.exit_helper import hard_exit, install_diagnostics, signal_exit
 from facefusion.filesystem import get_file_extension, get_file_name, is_image, is_video, resolve_file_paths, resolve_file_pattern
 from facefusion.jobs import job_helper, job_manager, job_runner
 from facefusion.jobs.job_list import compose_job_list
@@ -23,6 +23,7 @@ from facefusion.workflows import image_to_image, image_to_video
 def cli() -> None:
 	if pre_check():
 		signal.signal(signal.SIGINT, signal_exit)
+		install_diagnostics()
 		program = create_program()
 
 		if validate_args(program):
@@ -121,7 +122,7 @@ def common_pre_check() -> bool:
 	content_analyser_content = inspect.getsource(content_analyser).encode()
 	content_analyser_hash = hash_helper.create_hash(content_analyser_content)
 
-	return all(module.pre_check() for module in common_modules) and content_analyser_hash == 'b14e7b92'
+	return all(module.pre_check() for module in common_modules) and content_analyser_hash == '9c861642'
 
 
 def processors_pre_check() -> bool:
