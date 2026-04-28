@@ -1,6 +1,28 @@
 # FaceFusion Worklog
 
-Last updated: 2026-04-28 (post-loop, post-docs)
+Last updated: 2026-04-28 (post-flicker-diagnosis)
+
+## Ongoing Workstreams
+
+### Face-swap output quality
+- **Goal:** Every face-swap render meets the per-frame identity-stability bar — the swapped identity stays locked across frames, sub-second flicker minimized, source-identity tightness maintained.
+- **Status:** `ongoing`
+- **Scoreboard** (30-s smoke window, frames 1800–2700, ref-matched eval):
+
+| Metric | Baseline (run-03) | Target | Current (Fix E smoke) |
+|---|---:|---:|---:|
+| State transitions (shan↔other↔no-face) | 72 | <30 | 25 |
+| Shan share of detected frames | 64.7% | >90% | 92.3% |
+| Mean shan-run length | 0.43 s | >2 s | 2.14 s |
+| Max "other"-run length | 1.33 s | <0.5 s | 0.33 s |
+| Median cosine distance to source | 0.291 | <0.20 | 0.175 |
+
+- **Context:** Diagnosed run-03's flicker as a combination of `hyperswap_1c_256` (community-reported instability), CoreML FP16 non-determinism on Apple Silicon, and GFPGAN's lack of temporal smoothing. Fix E (`inswapper_128_fp16` + CPU-only + no enhancer) cleared all four targets in a 30-s smoke. Full Run 04 rerender deferred — compute reserved for other work.
+- **Eval tool:** `tools/evaluate_swap.py` — per-frame ArcFace cosine-distance evaluator with `--ref-match`, `--start-frame`/`--end-frame`/`--stride` flags. Reusable against any future render to score against the scoreboard.
+- **Files:** `tools/evaluate_swap.py`, `facefusion.ini` (Fix E values), `output/eval-run-03-window-1800-2700.csv` (baseline), `output/eval-fixE-smoke.csv` (target met), `output/eval-input-window-1800-2700.csv` (input ceiling reference), `videos/My-Movie-1-input-window-1800-2700.mov` (input clip for visual reference)
+- **Plan:** `~/.claude/plans/sunny-foraging-bengio.md`
+- **Last session:** 2026-04-28
+- **Next:** Run full 8-min Run 04 rerender with current Fix E config when compute is available (~3.5 h on CPU). Optional A/B isolation suite (E1/E2/E3 smokes) per the plan if you want to know which of the three Fix E knobs is dominant before committing to a production config.
 
 ## Active Projects
 
@@ -69,6 +91,11 @@ Last updated: 2026-04-28 (post-loop, post-docs)
 - Drove the autonomous fix-and-retry loop (Run 01-03) to first success. Run 01: extension mismatch. Run 02: chunking dispatch silently bypassed because `state_manager.get_item('job_id')` was None for headless-run — fixed via 1-line edit in `process_step` (commit `810aca7`). Run 03: 3 h 27 min, zero failures, valid 578 MB output video.
 - Shipped documentation suite: `settings.md`, `.loop/README.md` (autonomous loop pattern), `docs/MODELS_AND_SETTINGS.md` (176 models, 186 UI controls catalog), then via `/doc-project` added `docs/architecture.md` (system pipeline + directory map + maintenance notes, 18.9 KB) and `docs/file_tree.md` (247 source files).
 - Total commits this session: 14 on master, none pushed.
+- **Later session — flicker diagnosis (Ongoing: Face-swap output quality):** Built `tools/evaluate_swap.py` (per-frame ArcFace cosine-distance evaluator, ref-match + windowed-stride flags). Quantified user-reported flicker on run-03 — 30-s window showed 72 state transitions, 35% of detected frames as non-shan identity, mean shan-run only 0.43 s.
+- Tested four configs: Fix A+B (reference-mode selector + lower detector floor) → no improvement, attribution proved selector wasn't the lever. Fix D (drop GFPGAN) → marginal median tightening only, GFPGAN was sweetening but not the dominant cause. **Fix E (inswapper_128_fp16 + CPU-only + no enhancer)** → 65% reduction in transitions, 92.3% shan share, mean shan-run 2.14 s. All four scoreboard targets met on the smoke.
+- Three parallel investigations (codebase trace of `balance_source_embedding`, ini settings audit, web research) converged on the same picture: hyperswap_1c is documented unstable for video, CoreML FP16 fallback is non-deterministic on Apple Silicon, GFPGAN has no temporal smoothing.
+- Re-baselined the input video itself — 30.8% of frames have no face in the original (cuts, b-roll, hands), so the "33% no-face" figure I'd been treating as a flaw was actually the natural ceiling. Detection was never the problem.
+- Full Run 04 rerender deferred per user (compute reserved). Repo HEAD on Fix E config (commit `ced0e3b`). Plan at `~/.claude/plans/sunny-foraging-bengio.md` covers Step 6 A/B isolation if desired before production.
 
 ### 2026-04-27
 - Investigated silent worker death at 7%. Added `[FACEFUSION.DIAG]` stack-trace logging to all four exit paths in `exit_helper.py` and wrapped `future.result()` in `image_to_video.py` (note: the wrap was later replaced with skip-on-error logic — the abandon behavior it added is what motivated the new workstream).

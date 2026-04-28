@@ -1,10 +1,11 @@
 # File Tree: facefusion
 
 **Path**: /Users/jordanjones/Documents/facefusion
-**Generated**: 2026-04-28 14:09
-**Exclusions**: .git, __pycache__, *.pyc, .assets, .caches, .claude, .jobs, .loop/logs, .omc, .playwright-mcp, .ruff_cache, .temp, faces, logs, output, videos
+**Generated**: 2026-04-28 16:08
 
 ```
+./.claude/scheduled_tasks.lock
+./.claude/settings.local.json
 ./.coveragerc
 ./.editorconfig
 ./.flake8
@@ -12,7 +13,6 @@
 ./.github/preview.png
 ./.github/workflows/ci.yml
 ./.gitignore
-./.loop/forensics/run-01/run.log
 ./.loop/README.md
 ./.loop/RUNS.md
 ./diagnose.command
@@ -203,8 +203,6 @@
 ./facefusion/workflows/image_to_image.py
 ./facefusion/workflows/image_to_video.py
 ./install.py
-./Launch FaceFusion.app/Contents/Info.plist
-./Launch FaceFusion.app/Contents/MacOS/launcher
 ./launch.command
 ./LICENSE.md
 ./mypy.ini
@@ -253,5 +251,6 @@
 ./tests/test_time_helper.py
 ./tests/test_translator.py
 ./tests/test_vision.py
+./tools/evaluate_swap.py
 ./WORKLOG.md
 ```
