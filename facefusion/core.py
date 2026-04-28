@@ -91,6 +91,12 @@ def route(args : Args) -> None:
 		error_code = route_job_runner()
 		hard_exit(error_code)
 
+	if state_manager.get_item('command') == 'chunk-run':
+		if not job_manager.init_jobs(state_manager.get_item('jobs_path')):
+			hard_exit(1)
+		error_code = process_chunk()
+		hard_exit(error_code)
+
 
 def pre_check() -> bool:
 	if sys.version_info < (3, 10):
@@ -319,6 +325,25 @@ def process_batch(args : Args) -> ErrorCode:
 					return 1
 			if job_manager.submit_job(job_id) and job_runner.run_job(job_id, process_step):
 				return 0
+	return 1
+
+
+def process_chunk() -> ErrorCode:
+	job_id = state_manager.get_item('job_id')
+	steps = job_manager.get_steps(job_id)
+
+	if not steps:
+		logger.error(f'chunk_run_no_steps: job_id={job_id}', __name__)
+		return 1
+
+	step_args = steps[0].get('args') or {}
+	step_args.update(collect_job_args())
+	apply_args(step_args, state_manager.set_item)
+
+	logger.info(f'chunk_run_start: job_id={job_id}', __name__)
+
+	if common_pre_check() and processors_pre_check():
+		return conditional_process()
 	return 1
 
 

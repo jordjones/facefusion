@@ -237,7 +237,8 @@ def create_execution_program() -> ArgumentParser:
 	group_execution.add_argument('--execution-device-ids', help = translator.get('help.execution_device_ids'), type = int, default = config.get_int_list('execution', 'execution_device_ids', '0'), nargs = '+', metavar = 'EXECUTION_DEVICE_IDS')
 	group_execution.add_argument('--execution-providers', help = translator.get('help.execution_providers').format(choices = ', '.join(available_execution_providers)), default = config.get_str_list('execution', 'execution_providers', get_first(available_execution_providers)), choices = available_execution_providers, nargs = '+', metavar = 'EXECUTION_PROVIDERS')
 	group_execution.add_argument('--execution-thread-count', help = translator.get('help.execution_thread_count'), type = int, default = config.get_int_value('execution', 'execution_thread_count', '8'), choices = facefusion.choices.execution_thread_count_range, metavar = create_int_metavar(facefusion.choices.execution_thread_count_range))
-	job_store.register_job_keys([ 'execution_device_ids', 'execution_providers', 'execution_thread_count' ])
+	group_execution.add_argument('--chunk-size-frames', help = 'process video in subprocess chunks of N frames (0 disables chunking)', type = int, default = config.get_int_value('execution', 'chunk_size_frames', '0'))
+	job_store.register_job_keys([ 'execution_device_ids', 'execution_providers', 'execution_thread_count', 'chunk_size_frames' ])
 	return program
 
 
@@ -316,6 +317,7 @@ def create_program() -> ArgumentParser:
 	sub_program.add_parser('job-run-all', help = translator.get('help.job_run_all'), parents = [ create_config_path_program(), create_temp_path_program(), create_jobs_path_program(), collect_job_program(), create_halt_on_error_program() ], formatter_class = create_help_formatter_large)
 	sub_program.add_parser('job-retry', help = translator.get('help.job_retry'), parents = [ create_job_id_program(), create_config_path_program(), create_temp_path_program(), create_jobs_path_program(), collect_job_program() ], formatter_class = create_help_formatter_large)
 	sub_program.add_parser('job-retry-all', help = translator.get('help.job_retry_all'), parents = [ create_config_path_program(), create_temp_path_program(), create_jobs_path_program(), collect_job_program(), create_halt_on_error_program() ], formatter_class = create_help_formatter_large)
+	sub_program.add_parser('chunk-run', help = 'process a frame-range chunk for an in-progress job (internal)', parents = [ create_job_id_program(), create_config_path_program(), create_temp_path_program(), create_jobs_path_program(), collect_job_program() ], formatter_class = create_help_formatter_large)
 	return ArgumentParser(parents = [ program ], formatter_class = create_help_formatter_small)
 
 
