@@ -1,0 +1,17 @@
+[FACEFUSION.HEARTBEAT] pid=8182 rss_gb=0.08 elapsed_s=0
+[FACEFUSION.DIAG_INSTALLED] pid=8182 heartbeat_interval_s=10.0
+[FACEFUSION.CORE] processing step 1 of 1
+[FACEFUSION.CORE] match the target and output extension!
+[FACEFUSION.DIAG] hard_exit(1)
+  File "/Users/jordanjones/Documents/facefusion/facefusion.py", line 11, in <module>
+    core.cli()
+  File "/Users/jordanjones/Documents/facefusion/facefusion/core.py", line 35, in cli
+    route(args)
+  File "/Users/jordanjones/Documents/facefusion/facefusion/core.py", line 80, in route
+    hard_exit(error_code)
+  File "/Users/jordanjones/Documents/facefusion/facefusion/exit_helper.py", line 80, in hard_exit
+    _diag_log('hard_exit(' + str(error_code) + ')')
+  File "/Users/jordanjones/Documents/facefusion/facefusion/exit_helper.py", line 18, in _diag_log
+    sys.stderr.write(''.join(traceback.format_stack()))
+[FACEFUSION.ATEXIT] pid=8182
+EXIT_CODE=1

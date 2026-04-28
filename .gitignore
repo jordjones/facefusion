@@ -5,3 +5,13 @@ __pycache__
 .idea
 .jobs
 .vscode
+.temp
+logs
+output/*.mov
+output/*.mp4
+.loop/logs/
+.DS_Store
+.omc/
+.playwright-mcp/
+faces/
+videos/
