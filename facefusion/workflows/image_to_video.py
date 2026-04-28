@@ -1,3 +1,4 @@
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 
@@ -16,6 +17,8 @@ from facefusion.time_helper import calculate_end_time
 from facefusion.types import ErrorCode
 from facefusion.vision import conditional_merge_vision_mask, detect_video_resolution, extract_vision_mask, pack_resolution, read_static_image, read_static_images, read_static_video_frame, restrict_trim_frame, restrict_video_fps, restrict_video_resolution, scale_resolution, write_image
 from facefusion.workflows.core import is_process_stopping
+
+FRAME_FAILURE_ABORT_THRESHOLD = 0.50
 
 
 def process(start_time : float) -> ErrorCode:
@@ -78,12 +81,16 @@ def process_video() -> ErrorCode:
 		with tqdm(total = len(temp_frame_paths), desc = translator.get('processing'), unit = 'frame', ascii = ' =', disable = state_manager.get_item('log_level') in [ 'warn', 'error' ]) as progress:
 			progress.set_postfix(execution_providers = state_manager.get_item('execution_providers'))
 
+			failed_frames : list[tuple[int, str]] = []
+
 			with ThreadPoolExecutor(max_workers = state_manager.get_item('execution_thread_count')) as executor:
 				futures = []
+				future_to_frame : dict = {}
 
 				for frame_number, temp_frame_path in enumerate(temp_frame_paths):
 					future = executor.submit(process_temp_frame, temp_frame_path, frame_number)
 					futures.append(future)
+					future_to_frame[future] = frame_number
 
 				for future in as_completed(futures):
 					if is_process_stopping():
@@ -91,8 +98,34 @@ def process_video() -> ErrorCode:
 							__future__.cancel()
 
 					if not future.cancelled():
-						future.result()
+						try:
+							future.result()
+						except Exception as exception:
+							frame_number = future_to_frame[future]
+							failed_frames.append((frame_number, str(exception)))
+							logger.warn(f'frame_processing_failed (skipping): frame={frame_number}: {exception}\n{traceback.format_exc()}', __name__)
 						progress.update()
+
+		if failed_frames and not is_process_stopping():
+			retry_frame_numbers = [frame_number for frame_number, _ in failed_frames]
+			logger.info(f'frame_processing_retry: attempting serial retry of {len(retry_frame_numbers)} failed frame(s)', __name__)
+			recovered : set = set()
+			for frame_number in retry_frame_numbers:
+				try:
+					process_temp_frame(temp_frame_paths[frame_number], frame_number)
+					recovered.add(frame_number)
+				except Exception as exception:
+					logger.warn(f'frame_processing_retry_failed: frame={frame_number}: {exception}', __name__)
+			if recovered:
+				logger.info(f'frame_processing_retry_recovered: {len(recovered)}/{len(retry_frame_numbers)} previously-failed frames recovered on retry', __name__)
+				failed_frames = [entry for entry in failed_frames if entry[0] not in recovered]
+
+		if failed_frames:
+			failure_rate = len(failed_frames) / len(temp_frame_paths)
+			logger.warn(f'frame_processing_summary: {len(failed_frames)}/{len(temp_frame_paths)} frames failed ({failure_rate:.1%}); using original frames for those positions', __name__)
+			if failure_rate > FRAME_FAILURE_ABORT_THRESHOLD:
+				logger.error(f'frame_processing_aborted: failure rate {failure_rate:.1%} exceeds {FRAME_FAILURE_ABORT_THRESHOLD:.0%} threshold', __name__)
+				return 1
 
 		for processor_module in get_processors_modules(state_manager.get_item('processors')):
 			processor_module.post_process()
