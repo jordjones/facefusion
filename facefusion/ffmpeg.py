@@ -36,8 +36,10 @@ def run_ffmpeg_with_progress(commands : List[Command], update_progress : UpdateP
 			process.wait(timeout = 0.5)
 		except subprocess.TimeoutExpired:
 			continue
+		log_failure(process)
 		return process
 
+	log_failure(process)
 	return process
 
 
@@ -57,11 +59,13 @@ def run_ffmpeg(commands : List[Command]) -> subprocess.Popen[bytes]:
 			process.wait(timeout = 0.5)
 		except subprocess.TimeoutExpired:
 			continue
+		log_failure(process)
 		return process
 
 	if process_manager.is_stopping():
 		process.terminate()
 
+	log_failure(process)
 	return process
 
 
@@ -77,6 +81,22 @@ def log_debug(process : subprocess.Popen[bytes]) -> None:
 	for error in errors:
 		if error.strip():
 			logger.debug(error.strip(), __name__)
+
+
+def log_failure(process : subprocess.Popen[bytes]) -> None:
+	if process.returncode is None or process.returncode == 0:
+		return
+	if process.stderr is None or process.stderr.closed:
+		logger.error('ffmpeg_failed (rc=' + str(process.returncode) + '): no stderr available', __name__)
+		return
+	try:
+		stderr_bytes = process.stderr.read()
+	except (ValueError, OSError) as exception:
+		logger.error('ffmpeg_failed (rc=' + str(process.returncode) + '): could not read stderr (' + str(exception) + ')', __name__)
+		return
+	stderr_text = stderr_bytes.decode('utf-8', errors = 'replace').strip()
+	tail = stderr_text[-2000:] if stderr_text else 'no stderr captured'
+	logger.error('ffmpeg_failed (rc=' + str(process.returncode) + '): ' + tail, __name__)
 
 
 def get_available_encoder_set() -> EncoderSet:

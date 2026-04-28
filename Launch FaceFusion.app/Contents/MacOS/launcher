@@ -1,0 +1,8 @@
+#!/bin/bash
+PROJECT_DIR="/Users/jordanjones/Documents/facefusion"
+osascript <<EOF
+tell application "Terminal"
+    activate
+    do script "cd '$PROJECT_DIR' && exec bash ./launch.command"
+end tell
+EOF

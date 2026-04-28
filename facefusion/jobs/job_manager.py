@@ -263,3 +263,22 @@ def get_job_file_name(job_id : str) -> Optional[str]:
 	if job_id:
 		return job_id + '.json'
 	return None
+
+
+def set_worker_pid(job_id : str, worker_pid : int) -> bool:
+	job = read_job_file(job_id)
+
+	if job:
+		job['worker_pid'] = worker_pid
+		return update_job_file(job_id, job)
+	return False
+
+
+def get_worker_pid(job_id : str) -> Optional[int]:
+	job = read_job_file(job_id)
+
+	if job:
+		worker_pid = job.get('worker_pid')
+		if isinstance(worker_pid, int):
+			return worker_pid
+	return None

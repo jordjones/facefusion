@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Launch FaceFusion</string>
+    <key>CFBundleDisplayName</key>
+    <string>Launch FaceFusion</string>
+    <key>CFBundleIdentifier</key>
+    <string>local.facefusion.launcher</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>launcher</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSAppSleepDisabled</key>
+    <true/>
+</dict>
+</plist>
