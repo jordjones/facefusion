@@ -1,7 +1,7 @@
 # File Tree: facefusion
 
 **Path**: /Users/jordanjones/Documents/facefusion
-**Generated**: 2026-04-28 14:03
+**Generated**: 2026-04-28 14:09
 **Exclusions**: .git, __pycache__, *.pyc, .assets, .caches, .claude, .jobs, .loop/logs, .omc, .playwright-mcp, .ruff_cache, .temp, faces, logs, output, videos
 
 ```
@@ -16,6 +16,7 @@
 ./.loop/README.md
 ./.loop/RUNS.md
 ./diagnose.command
+./docs/architecture.md
 ./docs/file_tree.md
 ./docs/MODELS_AND_SETTINGS.md
 ./facefusion.ico

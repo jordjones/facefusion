@@ -44,13 +44,15 @@ Last updated: 2026-04-28 (post-loop, post-docs)
 - Diagnostic probes propagate into each chunk subprocess via `core.cli()` — invaluable if a chunk also dies, since the kill mode is visible per chunk.
 
 ### Personal-fork documentation suite
-- **Goal:** Capture this fork's settings, the autonomous fix-and-retry loop pattern, and a comprehensive models-and-settings reference catalog so a returning operator can quickly orient and prioritize.
-- **Status:** `complete` — three deliverables shipped.
+- **Goal:** Capture this fork's settings, the autonomous fix-and-retry loop pattern, a comprehensive models-and-settings reference catalog, and a system-level architecture overview so a returning operator can quickly orient and prioritize.
+- **Status:** `complete` — five deliverables shipped.
 - **Outcome:**
   - `settings.md` — narrative explanation of every non-default key in `facefusion.ini` plus the code-level modifications (NSFW disable, UI subprocess decoupling, diagnostic probes, frame-level resilience, subprocess chunking) not surfaced as config.
   - `.loop/README.md` + `.loop/RUNS.md` + `.loop/forensics/` — task-agnostic autonomous loop pattern preserved as a reusable template, with the FaceFusion render serving as the worked example.
   - `docs/MODELS_AND_SETTINGS.md` — 7,564-word reference catalog covering 176 model entries across 17 modules and 186 UI controls across 44 component files. Includes a quick-reference matrix, master/dependent dependency map, and three prioritization tables.
-- **Files:** `settings.md`, `.loop/README.md`, `.loop/RUNS.md`, `.loop/forensics/run-01/run.log`, `docs/MODELS_AND_SETTINGS.md`, `.gitignore` (output and tooling-state exclusions)
+  - `docs/architecture.md` — 18.9 KB system-level overview: ASCII pipeline diagram (operator-click → Gradio UI → ui_subprocess → parent worker → chunk_runner → per-chunk subprocess → ffmpeg merge), eight-step data flow, full directory map, key abstractions, external interfaces, configuration sources, maintenance notes.
+  - `docs/file_tree.md` — sorted listing of 247 source files with project-specific exclusions (cache dirs, render outputs, model assets, personal data dirs).
+- **Files:** `settings.md`, `.loop/README.md`, `.loop/RUNS.md`, `.loop/forensics/run-01/run.log`, `docs/MODELS_AND_SETTINGS.md`, `docs/architecture.md`, `docs/file_tree.md`, `.gitignore` (output and tooling-state exclusions)
 - **Plans:** `~/.claude/plans/sorted-splashing-dewdrop.md` (chunking + prompt-built catalog)
 - **Last session:** 2026-04-28
 
@@ -65,8 +67,8 @@ Last updated: 2026-04-28 (post-loop, post-docs)
 - Two repros (frames 1026 then 778) confirmed silent worker death bypasses every Python-level instrumentation (no diag, no signal log, no atexit, no traceback). 76 GB free RAM ruled out Jetsam. Most likely SIGKILL or a native abort/_exit in the CoreML provider.
 - Built subprocess chunking end to end: new `chunk-run` CLI subcommand, new `chunk_runner.py` workflow, env-var-gated slice path in `image_to_video.process()`, `chunk_size_frames = 250` default. Rollback knob = 0.
 - Drove the autonomous fix-and-retry loop (Run 01-03) to first success. Run 01: extension mismatch. Run 02: chunking dispatch silently bypassed because `state_manager.get_item('job_id')` was None for headless-run — fixed via 1-line edit in `process_step` (commit `810aca7`). Run 03: 3 h 27 min, zero failures, valid 578 MB output video.
-- Shipped documentation suite: `settings.md`, `.loop/README.md` (autonomous loop pattern), `docs/MODELS_AND_SETTINGS.md` (176 models, 186 UI controls catalog).
-- Total commits this session: 11 on master, none pushed.
+- Shipped documentation suite: `settings.md`, `.loop/README.md` (autonomous loop pattern), `docs/MODELS_AND_SETTINGS.md` (176 models, 186 UI controls catalog), then via `/doc-project` added `docs/architecture.md` (system pipeline + directory map + maintenance notes, 18.9 KB) and `docs/file_tree.md` (247 source files).
+- Total commits this session: 14 on master, none pushed.
 
 ### 2026-04-27
 - Investigated silent worker death at 7%. Added `[FACEFUSION.DIAG]` stack-trace logging to all four exit paths in `exit_helper.py` and wrapped `future.result()` in `image_to_video.py` (note: the wrap was later replaced with skip-on-error logic — the abandon behavior it added is what motivated the new workstream).
