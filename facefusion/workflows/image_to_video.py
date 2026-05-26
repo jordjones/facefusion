@@ -113,7 +113,8 @@ def process_video() -> ErrorCode:
 		from facefusion.workflows import chunk_runner
 		job_id = state_manager.get_item('job_id')
 		if job_id:
-			return chunk_runner.run_chunked(temp_frame_paths, chunk_size, job_id)
+			step_index = state_manager.get_item('step_index') or 0
+			return chunk_runner.run_chunked(temp_frame_paths, chunk_size, job_id, step_index)
 		logger.warn('chunk_runner_skipped: no job_id in state, falling back to in-process', __name__)
 
 	return _process_video_slice(temp_frame_paths, 0, len(temp_frame_paths))

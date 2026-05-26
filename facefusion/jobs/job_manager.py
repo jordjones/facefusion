@@ -175,6 +175,14 @@ def get_steps(job_id : str) -> List[JobStep]:
 	return []
 
 
+def get_step_args(job_id : str, step_index : int) -> Optional[Args]:
+	steps = get_steps(job_id)
+
+	if step_index in range(len(steps)):
+		return steps[step_index].get('args')
+	return None
+
+
 def count_step_total(job_id : str) -> int:
 	steps = get_steps(job_id)
 

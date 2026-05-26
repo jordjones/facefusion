@@ -52,7 +52,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
                     ▼
         ┌─────────────────────────────────────────────────┐
         │  CHUNK SUBPROCESS  (fresh process tree)          │
-        │  facefusion.py chunk-run <job_id>                │
+        │  facefusion.py chunk-run <job_id> <step_index>   │
         │  FACEFUSION_CHUNK_START=N FACEFUSION_CHUNK_END=M │
         │                                                  │
         │  conditional_process → image_to_video.process    │
@@ -88,8 +88,8 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 2. **UI configuration** — operator selects target video, source face, processors, models in the Gradio dashboard. State writes into `state_manager` (per-app-context dict) and persists into a job file under `.jobs/`.
 3. **Worker spawn** — operator clicks Start. `instant_runner.start()` calls `ui_subprocess.spawn_job_worker(job_id)`, which forks a `caffeinate -dimsu python facefusion.py job-run <id>` subprocess with `PYTHONUNBUFFERED=1` and `PYTHONFAULTHANDLER=1`. A daemon tail thread reads the worker's logfile and prefixes each line into the UI server's stdout.
 4. **Parent worker pipeline** — `core.cli` → `route_job_runner` → `job_runner.run_job` → `process_step` (which sets `job_id` in state, then calls `conditional_process`) → `image_to_video.process` (for video targets). The parent runs `setup` (NSFW gate, temp dir prep) and `extract_frames` (ffmpeg dumps `%08d.jpg` frames into `.temp/`).
-5. **Chunked frame processing** — `process_video` checks `chunk_size_frames`. If > 0 and the frame total exceeds it, dispatches to `chunk_runner.run_chunked` instead of running in-process. The chunk runner partitions frames into 250-frame ranges and spawns one subprocess per chunk via `chunk-run` CLI subcommand.
-6. **Per-chunk inference** — chunk subprocess loads job state from `.jobs/`, applies the step args, applies `FACEFUSION_CHUNK_START/END` to gate `image_to_video.process` to slice-only mode, runs the per-frame ThreadPoolExecutor over its slice, exits cleanly. `process_temp_frame` reads each frame, runs the active processors (each with its own ONNX session), writes the result back in place. Failures are logged + skipped + retried once serially after the parallel pass; the original extracted frame remains on disk for permanently-failed frames.
+5. **Chunked frame processing** — `process_video` checks `chunk_size_frames`. If > 0 and the frame total exceeds it, dispatches to `chunk_runner.run_chunked` instead of running in-process. The chunk runner partitions frames into 250-frame ranges and spawns one subprocess per chunk via the internal `chunk-run <job_id> <step_index>` CLI subcommand.
+6. **Per-chunk inference** — chunk subprocess loads job state from `.jobs/`, applies the exact current step args by `step_index`, applies `FACEFUSION_CHUNK_START/END` to gate `image_to_video.process` to slice-only mode, runs the per-frame ThreadPoolExecutor over its slice, exits cleanly. `process_temp_frame` reads each frame, runs the active processors (each with its own ONNX session), writes the result back in place. Failures are logged + skipped + retried once serially after the parallel pass; the original extracted frame remains on disk for permanently-failed frames.
 7. **Merge** — once all chunks complete, the parent runs `ffmpeg.merge_video` (image2 demuxer, `%08d` pattern; indifferent to which frames were processed vs. left as originals) and `ffmpeg.restore_audio` (replaces or restores audio track).
 8. **Finalize** — `finalize_video` clears temp frames and verifies the output file is a playable video.
 
@@ -98,7 +98,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 | Directory / file | Purpose |
 |---|---|
 | `facefusion.py` | CLI entry point; calls `conda.setup()` then `core.cli()`. |
-| `facefusion/core.py` | argparse routing, `route_job_runner`, `process_chunk` (this fork's `chunk-run` handler), `process_step` (sets `job_id` into state, then `conditional_process`), `conditional_process` (dispatches image vs video pipeline). |
+| `facefusion/core.py` | argparse routing, `route_job_runner`, `process_chunk` (this fork's `chunk-run` handler), `process_step` (sets `job_id` and `step_index` into state, then `conditional_process`), `conditional_process` (dispatches image vs video pipeline). |
 | `facefusion/program.py` | Full argparse surface; every config key is registered here as a CLI flag. |
 | `facefusion/state_manager.py` | Per-app-context state dict (`cli`, `ui` contexts). All `state_manager.get_item('foo')` reads come from here. |
 | `facefusion/exit_helper.py` | Four exit functions (`fatal_exit`, `hard_exit`, `signal_exit`, `graceful_exit`) instrumented with `[FACEFUSION.DIAG]` stack traces. `install_diagnostics()` registers signal probes (SIGTERM/HUP/ABRT/PIPE/USR1/USR2), atexit hook, and 10-s RSS heartbeat thread. Wired in from `core.cli`. |
@@ -134,7 +134,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 - **`processors`** (the master list) — an ordered list of processor module names. Each module exposes a uniform interface (`pre_process('output')`, `process_frame(payload)`, `post_process()`, `apply_args(args, set_item)`, `create_static_model_set('full')`). Adding a new processor is a matter of dropping a module in `facefusion/processors/modules/<name>/`.
 - **Job** — a JSON file under `.jobs/<status>/<id>.json` with versioned schema, an array of steps, status (`drafted | queued | started | completed | failed`), and now a `worker_pid`. Jobs are the unit of work for `job-run` and the chunk subprocesses load step args from them via `job_manager.get_steps`.
 - **Step args vs job args** — step args carry per-step parameters (target_path, source_paths, processors, model selections); job args carry execution-level parameters (execution_providers, execution_thread_count, video_memory_strategy, log_level). `process_step` merges them via `step_args.update(collect_job_args())`.
-- **Chunk subprocess (this fork)** — a worker forked by `chunk_runner.run_chunked` to process a frame slice in isolation. Sees `FACEFUSION_CHUNK_START`/`END` env vars; loads the parent's job state; runs only `process_video()` on the slice; exits. Each chunk's death is independent — the parent advances to the next chunk regardless.
+- **Chunk subprocess (this fork)** — a worker forked by `chunk_runner.run_chunked` to process a frame slice in isolation. Sees `FACEFUSION_CHUNK_START`/`END` env vars; loads the parent's job state and current `step_index`; runs only `process_video()` on the slice; exits. Each chunk's death is independent — the parent advances to the next chunk regardless.
 - **Diagnostic probes (this fork)** — `[FACEFUSION.DIAG]` (exit-path traces), `[FACEFUSION.SIGNAL]` (signal handler logs), `[FACEFUSION.ATEXIT]` (atexit hook), `[FACEFUSION.HEARTBEAT]` (10-s RSS pulse). Together they triangulate the kill mode of any worker that dies; absence of all four indicates SIGKILL or native `os._exit/abort`.
 
 ## External Interfaces
@@ -146,7 +146,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 | `python facefusion.py headless-run …` | CLI subcommand | Headless render with all step args on the command line. |
 | `python facefusion.py batch-run …` | CLI subcommand | Render the cartesian product of source/target patterns. |
 | `python facefusion.py job-run <id>` | CLI subcommand | Run a queued job (UI workers shell out to this). |
-| `python facefusion.py chunk-run <id>` *(this fork)* | CLI subcommand | Run a single frame-range chunk for an in-progress job. Internal — used only by `chunk_runner`. |
+| `python facefusion.py chunk-run <id> <step_index>` *(this fork)* | CLI subcommand | Run a single frame-range chunk for a specific step in an in-progress job. Internal — used only by `chunk_runner`. |
 | `python facefusion.py force-download` | CLI subcommand | Pre-fetch model weights for offline operation. |
 | `python facefusion.py benchmark` | CLI subcommand | Run timed renders at fixed resolutions. |
 | GitHub / Hugging Face | HTTPS | Model weight downloads (configurable via `download_providers`). |

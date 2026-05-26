@@ -18,7 +18,7 @@ def _project_dir() -> Path:
 	return Path(__file__).resolve().parent.parent.parent
 
 
-def _build_chunk_command(job_id : str) -> List[str]:
+def _build_chunk_command(job_id : str, step_index : int) -> List[str]:
 	project_dir = _project_dir()
 	config_path = state_manager.get_item('config_path') or str(project_dir / 'facefusion.ini')
 	jobs_path = state_manager.get_item('jobs_path') or str(project_dir / '.jobs')
@@ -31,13 +31,14 @@ def _build_chunk_command(job_id : str) -> List[str]:
 		sys.executable, '-u',
 		str(project_dir / 'facefusion.py'), 'chunk-run',
 		job_id,
+		str(step_index),
 		'--config-path', config_path,
 		'--jobs-path', jobs_path,
 	]
 	return command
 
 
-def _spawn_chunk(job_id : str, chunk_index : int, start_index : int, end_index : int) -> Tuple[subprocess.Popen, Path]:
+def _spawn_chunk(job_id : str, step_index : int, chunk_index : int, start_index : int, end_index : int) -> Tuple[subprocess.Popen, Path]:
 	project_dir = _project_dir()
 	log_dir = project_dir / 'logs'
 	log_dir.mkdir(exist_ok = True)
@@ -55,7 +56,7 @@ def _spawn_chunk(job_id : str, chunk_index : int, start_index : int, end_index :
 
 	log_file = open(log_path, 'wb')
 	process = subprocess.Popen(
-		_build_chunk_command(job_id),
+		_build_chunk_command(job_id, step_index),
 		cwd = str(project_dir),
 		stdout = log_file,
 		stderr = subprocess.STDOUT,
@@ -103,13 +104,13 @@ def _tail_log_to_stdout(log_path : Path, prefix_label : str, stop_event : thread
 		logger.error(f'chunk_log_tail_failed prefix={prefix_label}: {exception}', __name__)
 
 
-def run_chunked(temp_frame_paths : List[str], chunk_size : int, job_id : str) -> ErrorCode:
+def run_chunked(temp_frame_paths : List[str], chunk_size : int, job_id : str, step_index : int = 0) -> ErrorCode:
 	chunks : List[Tuple[int, int, int]] = []
 	for chunk_index, start_index in enumerate(range(0, len(temp_frame_paths), chunk_size)):
 		end_index = min(start_index + chunk_size, len(temp_frame_paths))
 		chunks.append((chunk_index, start_index, end_index))
 
-	logger.info(f'chunk_runner_start: total_chunks={len(chunks)} chunk_size={chunk_size} total_frames={len(temp_frame_paths)} job_id={job_id}', __name__)
+	logger.info(f'chunk_runner_start: total_chunks={len(chunks)} chunk_size={chunk_size} total_frames={len(temp_frame_paths)} job_id={job_id} step_index={step_index}', __name__)
 
 	failed_chunks : List[Tuple[int, int, int]] = []
 
@@ -119,7 +120,7 @@ def run_chunked(temp_frame_paths : List[str], chunk_size : int, job_id : str) ->
 			attempt_label = '' if attempt == 0 else f' retry={attempt}'
 			logger.info(f'chunk_runner_chunk_start: chunk={chunk_index} range=[{start_index},{end_index}){attempt_label}', __name__)
 
-			process, log_path = _spawn_chunk(job_id, chunk_index, start_index, end_index)
+			process, log_path = _spawn_chunk(job_id, step_index, chunk_index, start_index, end_index)
 			prefix_label = f'{job_id}-chunk-{chunk_index:03d}'
 			stop_event = threading.Event()
 			tail_thread = threading.Thread(

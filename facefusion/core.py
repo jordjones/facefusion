@@ -330,17 +330,23 @@ def process_batch(args : Args) -> ErrorCode:
 
 def process_chunk() -> ErrorCode:
 	job_id = state_manager.get_item('job_id')
-	steps = job_manager.get_steps(job_id)
+	step_index = state_manager.get_item('step_index')
 
-	if not steps:
-		logger.error(f'chunk_run_no_steps: job_id={job_id}', __name__)
+	if step_index is None:
+		step_index = 0
+
+	step_args = job_manager.get_step_args(job_id, step_index)
+
+	if step_args is None:
+		logger.error(f'chunk_run_no_step: job_id={job_id} step_index={step_index}', __name__)
 		return 1
 
-	step_args = steps[0].get('args') or {}
 	step_args.update(collect_job_args())
 	apply_args(step_args, state_manager.set_item)
+	state_manager.set_item('job_id', job_id)
+	state_manager.set_item('step_index', step_index)
 
-	logger.info(f'chunk_run_start: job_id={job_id}', __name__)
+	logger.info(f'chunk_run_start: job_id={job_id} step_index={step_index}', __name__)
 
 	if common_pre_check() and processors_pre_check():
 		return conditional_process()
@@ -352,6 +358,7 @@ def process_step(job_id : str, step_index : int, step_args : Args) -> bool:
 	step_args.update(collect_job_args())
 	apply_args(step_args, state_manager.set_item)
 	state_manager.set_item('job_id', job_id)
+	state_manager.set_item('step_index', step_index)
 
 	logger.info(translator.get('processing_step').format(step_current = step_index + 1, step_total = step_total), __name__)
 	if common_pre_check() and processors_pre_check():
@@ -373,5 +380,3 @@ def conditional_process() -> ErrorCode:
 		return image_to_video.process(start_time)
 
 	return 0
-
-

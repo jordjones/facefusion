@@ -108,7 +108,7 @@ Why: silent worker deaths are now diagnosable. If a worker dies, exactly one of 
 
 ### Subprocess chunking
 
-New CLI subcommand `chunk-run` (in `facefusion/program.py` + `facefusion/core.py`). Invoked by `facefusion/workflows/chunk_runner.py` to dispatch the parallel frame-processing pass into 250-frame subprocess chunks. Each chunk subprocess receives `FACEFUSION_CHUNK_START` and `FACEFUSION_CHUNK_END` env vars that gate `image_to_video.process()` to run only the slice and skip setup/extract/merge/audio/finalize (those stay in the parent).
+New CLI subcommand `chunk-run` (in `facefusion/program.py` + `facefusion/core.py`). Invoked by `facefusion/workflows/chunk_runner.py` as `chunk-run <job_id> <step_index>` to dispatch the parallel frame-processing pass into 250-frame subprocess chunks. Each chunk subprocess receives `FACEFUSION_CHUNK_START` and `FACEFUSION_CHUNK_END` env vars that gate `image_to_video.process()` to run only the slice and skip setup/extract/merge/audio/finalize (those stay in the parent).
 
 Why: see the `RUNS.md` writeup of the silent worker death, frames 778 and 1026, and the chunked-architecture rationale in `~/.claude/plans/sorted-splashing-dewdrop.md` (one-shot subprocess chunking plan).
 
