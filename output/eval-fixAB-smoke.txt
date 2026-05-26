@@ -1,0 +1,21 @@
+video:           output/My-Movie-1-faceswap-shan-fixAB-smoke.mov
+  frames total:  900
+  fps:           30.000
+  sampled:       450
+  selector:      source-match (closest cosine to source)
+  detected:      324 (72.0%)
+  multi-face:    9/324 detected frames had >1 face
+cosine distance to source (lower = closer to source identity):
+  mean:          0.5115
+  median:        0.2934
+  p05:           0.2002
+  p95:           1.0243
+  min:           0.1681
+  max:           1.0925
+  < 0.4:        200/324 (61.7%)
+  < 0.5:        201/324 (62.0%)
+  < 0.6:        202/324 (62.3%)
+  < 0.7:        202/324 (62.3%)
+detector score: mean 0.810  min 0.301
+landmarker score: mean 0.843  min 0.111
+wrote output/eval-fixAB-smoke.csv

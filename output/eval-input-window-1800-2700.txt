@@ -1,0 +1,21 @@
+video:           videos/My Movie 1.mov
+  frames total:  14557
+  fps:           30.000
+  sampled:       451
+  selector:      max detector score
+  detected:      312 (69.2%)
+  multi-face:    5/312 detected frames had >1 face
+cosine distance to source (lower = closer to source identity):
+  mean:          0.9582
+  median:        0.9635
+  p05:           0.8627
+  p95:           1.0297
+  min:           0.8257
+  max:           1.0774
+  < 0.4:        0/312 (0.0%)
+  < 0.5:        0/312 (0.0%)
+  < 0.6:        0/312 (0.0%)
+  < 0.7:        0/312 (0.0%)
+detector score: mean 0.818  min 0.502
+landmarker score: mean 0.810  min 0.146
+wrote output/eval-input-window-1800-2700.csv

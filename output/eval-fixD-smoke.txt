@@ -1,0 +1,21 @@
+video:           output/My-Movie-1-faceswap-shan-fixD-smoke.mov
+  frames total:  900
+  fps:           30.000
+  sampled:       450
+  selector:      source-match (closest cosine to source)
+  detected:      312 (69.3%)
+  multi-face:    2/312 detected frames had >1 face
+cosine distance to source (lower = closer to source identity):
+  mean:          0.4777
+  median:        0.2494
+  p05:           0.1799
+  p95:           1.0170
+  min:           0.1606
+  max:           1.0689
+  < 0.4:        199/312 (63.8%)
+  < 0.5:        200/312 (64.1%)
+  < 0.6:        201/312 (64.4%)
+  < 0.7:        201/312 (64.4%)
+detector score: mean 0.823  min 0.534
+landmarker score: mean 0.849  min 0.127
+wrote output/eval-fixD-smoke.csv
