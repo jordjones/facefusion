@@ -1,8 +1,9 @@
 # FaceFusion 3.6.0 — Models & Settings Reference
 
 **Generated:** 2026-04-28
+**Last updated:** 2026-05-26
 **Version:** FaceFusion 3.6.0 (`facefusion/metadata.py:7`)
-**Hardware target:** Apple M4 Max, 128 GB RAM, CoreML + CPU execution providers
+**Hardware target:** Apple M4 Max, 128 GB RAM. Current quality baseline is CPU-only (`execution_providers = cpu`); CoreML remains available for speed experiments.
 **Scope:** Every UI control reachable from the localhost dashboard (`python facefusion.py run`) and every model selectable from any UI dropdown.
 
 ## How to read this doc
@@ -67,8 +68,8 @@ Per-processor headline view. Default model is the value in `facefusion.ini` or t
 
 | Processor | Default model | Speed tier | Quality tier | Memory tier | Verdict |
 |---|---|---|---|---|---|
-| face_swapper | `hyperswap_1c_256` | medium | best (FF-native) | medium | Keep at hyperswap_1c; A/B against inswapper_128 for legacy comparison |
-| face_enhancer | `gfpgan_1.4` | medium | best (in 512px tier) | medium | Try `gpen_bfr_1024` if you want sharper at 2× cost |
+| face_swapper | `inswapper_128_fp16` | fast | good | low | Current Fix E baseline; reduced identity flicker in 30-s smoke versus run-03 |
+| face_enhancer | `gfpgan_1.4` (inactive) | medium | best (in 512px tier) | medium | Configured but off in Fix E; re-enable only for A/B smokes |
 | frame_enhancer | (off) | — | — | — | Adds 2× to per-frame time; only enable for archive-quality output |
 | expression_restorer | `live_portrait` | slow | good | high | Single model option; only enable when needed |
 | age_modifier | `styleganex_age` | slow | good | medium | `fran` for 1024px detail at higher cost |
@@ -101,9 +102,9 @@ The pipeline is the ordered subset of processors chosen here. Each enabled proce
 
 - **Type:** list of strings.
 - **Choices:** `age_modifier`, `background_remover`, `deep_swapper`, `expression_restorer`, `face_debugger`, `face_editor`, `face_enhancer`, `face_swapper`, `frame_colorizer`, `frame_enhancer`, `lip_syncer`.
-- **Current default:** `face_swapper face_enhancer`.
+- **Current default:** `face_swapper`.
 - **Speed impact:** linear in the number of enabled processors. Each adds 30-100% per-frame time on M4 Max.
-- **M4 Max note:** memory grows proportionally with active processors. The 87 GB chunk peak observed on the 14,500-frame render was with `face_swapper + face_enhancer`. Adding a third (e.g., `frame_enhancer`) would likely exceed safe memory; verify with chunking enabled.
+- **M4 Max note:** memory grows proportionally with active processors. The 87 GB chunk peak observed on the 14,500-frame run-03 render was with `face_swapper + face_enhancer`; current Fix E is lighter because the enhancer is disabled. Adding another processor (e.g., `frame_enhancer`) still needs chunked validation.
 
 ### `execution_providers`
 
@@ -113,10 +114,10 @@ Ordered list of inference backends. ONNX Runtime tries them in order per session
 
 - **Type:** ordered list.
 - **Choices:** `cuda`, `tensorrt`, `rocm`, `migraphx`, `coreml`, `openvino`, `qnn`, `directml`, `cpu`. M4 Max only `coreml` and `cpu` are useful.
-- **Current default:** `coreml cpu`.
-- **Speed impact:** very high. CoreML on Apple Silicon delivers ~4-10× speedup over CPU for most face models.
-- **Quality impact:** none in principle. In practice, some fp16 variants (notably `inswapper_128_fp16`, `real_esrgan_*_fp16`) are silently swapped to fp32 on macOS/CoreML in code (`face_swapper/core.py:508-510`, `frame_enhancer/core.py:563-569`).
-- **M4 Max note:** the silent worker death class of failure traces back to CoreML provider instability under sustained 12-thread concurrency. Subprocess chunking (see `chunk_size_frames`) bounds the blast radius.
+- **Current default:** `cpu`.
+- **Speed impact:** very high. CoreML on Apple Silicon can deliver large speedups over CPU for many face models, but it is no longer the quality default for this fork.
+- **Quality impact:** none in principle. In practice, the run-03 flicker diagnosis implicated CoreML FP16 nondeterminism alongside `hyperswap_1c_256` and GFPGAN. Some fp16 variants (notably `inswapper_128_fp16`, `real_esrgan_*_fp16`) are also silently swapped to fp32 on macOS/CoreML in code (`face_swapper/core.py:508-510`, `frame_enhancer/core.py:563-569`).
+- **M4 Max note:** the silent worker death class of failure traced back to CoreML provider instability under sustained 12-thread concurrency. Subprocess chunking (see `chunk_size_frames`) bounds that blast radius, but current Fix E avoids CoreML for output quality.
 
 ### `execution_thread_count`
 
@@ -135,7 +136,7 @@ Number of parallel ThreadPoolExecutor workers in `process_video()`. Each worker 
 
 CLI: `--chunk-size-frames`. `facefusion.ini` `[execution]`. *Not in upstream.*
 
-Process video in subprocess chunks of N frames. 0 disables chunking and runs in-process. Each chunk subprocess gets a fresh ONNX runtime, a fresh CoreML state, and dies cleanly on exit — bounding memory drift and isolating the silent-death failure mode that plagued long renders on this fork.
+Process video in subprocess chunks of N frames. 0 disables chunking and runs in-process. Each chunk subprocess gets a fresh ONNX runtime state and dies cleanly on exit — bounding memory drift and isolating the silent-death failure mode that plagued long renders on this fork. If CoreML is re-enabled for speed experiments, every chunk also gets fresh CoreML provider state.
 
 - **Type:** int.
 - **Range:** 0 = disabled; otherwise positive int. Tested at 250.
@@ -193,7 +194,7 @@ Replaces target faces with a source identity, frame by frame. The pipeline: face
 | Key | Year | License | Input | Speed | Quality | Memory | Niche |
 |---|---|---|---|---|---|---|---|
 | `inswapper_128` | 2023 | Non-Commercial (InsightFace) | 128² | fast | good | low | Industry default; widely used baseline. ArcFace-128 embedding. |
-| `inswapper_128_fp16` | 2023 | Non-Commercial | 128² | fast | good | low | Half-precision variant. **Auto-swapped to `inswapper_128` on CoreML/macOS** (`core.py:508-510`). |
+| `inswapper_128_fp16` | 2023 | Non-Commercial | 128² | fast | good | low | **Current Fix E default in `facefusion.ini:96`.** Half-precision variant; auto-swapped to `inswapper_128` only if CoreML/macOS is re-enabled (`core.py:508-510`). |
 | `blendswap_256` | 2023 | Non-Commercial (mapooon) | 256² | fast | good | low | Blending-based swap with StyleGAN-like generator. Lightweight. |
 | `simswap_256` | 2020 | Non-Commercial (neuralchen) | 256² | medium | baseline | medium | Older but proven; ArcFace-112 embedding. |
 | `simswap_unofficial_512` | 2020 | Non-Commercial | 512² | slow | good | medium | Higher-detail SimSwap; unofficial 512px training. |
@@ -204,7 +205,7 @@ Replaces target faces with a source identity, frame by frame. The pipeline: face
 | `uniface_256` | 2022 | Unknown | 256² | medium | good | medium | Pose-tolerant unified swap; FFHQ template. |
 | `hyperswap_1a_256` | 2025 | ResearchRAIL (FaceFusion) | 256² | medium | best | medium | FF-native; speed-leaning of three variants. `[needs verification]` against open benchmarks. |
 | `hyperswap_1b_256` | 2025 | ResearchRAIL | 256² | medium | best | medium | Middle of the FF-native trio. |
-| `hyperswap_1c_256` | 2025 | ResearchRAIL | 256² | medium | best | medium | Quality-leaning of the trio. **Currently selected default in `facefusion.ini:96`.** |
+| `hyperswap_1c_256` | 2025 | ResearchRAIL | 256² | medium | best | medium | Quality-leaning of the trio. Former run-03 default; removed from current baseline after flicker diagnosis. |
 
 **Architecture lineage citations**: GHOST family from [ai-forever/ghost](https://github.com/ai-forever/ghost) (IEEE Access 2022). Hyperswap is FaceFusion-native (no public paper as of 2026-04). InsightFace family at [insightface](https://github.com/deepinsight/insightface). SimSwap from [neuralchen/SimSwap](https://github.com/neuralchen/SimSwap).
 
@@ -229,7 +230,7 @@ Restores and sharpens swapped or otherwise degraded faces. Blind face restoratio
 | `codeformer` | 2022 | S-Lab-1.0 (sczhou) | 512² | medium | good | medium | Transformer + codebook. Robust to unaligned input, good for whole-image restoration. |
 | `gfpgan_1.2` | 2022 | Apache-2.0 (TencentARC) | 512² | medium | good | medium | Sharper than 1.3 but slightly less natural skin tone. |
 | `gfpgan_1.3` | 2022 | Apache-2.0 | 512² | medium | good | medium | More natural skin, slight softness. |
-| `gfpgan_1.4` | 2022 | Apache-2.0 | 512² | medium | best (in GFPGAN) | medium | **Default in `facefusion.ini:93`**. Best of the three GFPGAN variants. |
+| `gfpgan_1.4` | 2022 | Apache-2.0 | 512² | medium | best (in GFPGAN) | medium | Configured in `facefusion.ini:93` but inactive unless `face_enhancer` is added to `processors`. Best of the three GFPGAN variants. |
 | `gpen_bfr_256` | 2021 | Non-Commercial (yangxy) | 256² | fast | baseline | low | Lowest cost. Beautification-leaning. |
 | `gpen_bfr_512` | 2021 | Non-Commercial | 512² | medium | good | medium | Mid-tier GPEN. |
 | `gpen_bfr_1024` | 2021 | Non-Commercial | 1024² | slow | best (high-res) | high | Doubled detail vs 512. ~2× per-frame cost. |
@@ -241,7 +242,7 @@ Restores and sharpens swapped or otherwise degraded faces. Blind face restoratio
 ### Settings
 
 - **`face_enhancer_model`** — Dropdown (`face_enhancer_options.py:23`). Picks model from the table.
-- **`face_enhancer_blend`** — Slider, int 0-100 (`face_enhancer_options.py:29`). Blend percentage of enhanced output over original. Currently 80 — avoids the over-restored "porcelain" look that 100 produces. **Tuning sweet spot: 60-85.**
+- **`face_enhancer_blend`** — Slider, int 0-100 (`face_enhancer_options.py:29`). Blend percentage of enhanced output over original. Configured at 80 but inactive in Fix E because `face_enhancer` is off. If re-enabled, 60-85 is the likely tuning range to avoid the over-restored "porcelain" look that 100 produces.
 - **`face_enhancer_weight`** — Slider, float (`face_enhancer_options.py:37`). Visibility conditional on `module.has_weight_input()`. Some models (e.g., `codeformer`) accept a fidelity-vs-quality weight; this slider is hidden when the chosen model doesn't.
 
 ---
@@ -845,17 +846,17 @@ ui_workflow (master)
 |---|---|---|
 | `chunk_size_frames` | Bounds memory drift across long renders. Validated to fix the silent-death failure mode. | 0 (off) vs 250 (current) vs 500 (fewer model loads) |
 | `face_swapper_pixel_boost` | Direct quality lever; cost is sub-linear with resolution. | 256 vs 512 (current) vs 768 |
-| `face_enhancer_blend` | Direct visual lever; tune toward natural skin. | 60, 80 (current), 100 |
+| `face_enhancer_blend` | Direct visual lever if enhancer is re-enabled; tune toward natural skin. | off (current Fix E), then 60, 80, 100 |
 | `face_detector_angles` | Drop to `0` if every face is upright; ~30% faster detection. | `0` vs `0 90 180 270` (current) |
 | `output_video_preset` | Final encode size lever. | `medium` vs `slow` (current) vs `slower` |
-| `execution_thread_count` | With chunking on, can push higher. | 8 vs 12 (current) vs 16 |
+| `execution_thread_count` | With chunking on, can push higher after validating memory and flicker. | 8 vs 12 (current) vs 16 |
 
 ### Models worth A/B testing on M4 Max
 
 | Slot | Current | Compare with | Why |
 |---|---|---|---|
-| `face_swapper_model` | `hyperswap_1c_256` | `inswapper_128`, `ghost_3_256`, `simswap_unofficial_512` | Test the FF-native vs widely-deployed open alternatives. |
-| `face_enhancer_model` | `gfpgan_1.4` | `codeformer`, `gpen_bfr_1024`, `restoreformer_plus_plus` | Dramatic visual differences; pick the look you prefer. |
+| `face_swapper_model` | `inswapper_128_fp16` | `hyperswap_1c_256`, `ghost_3_256`, `simswap_unofficial_512` | Keep Fix E as baseline; only retest hyperswap with the evaluator because run-03 showed identity flicker. |
+| `face_enhancer_model` | off (`gfpgan_1.4` configured) | `gfpgan_1.4`, `codeformer`, `gpen_bfr_1024`, `restoreformer_plus_plus` | Re-enable only as controlled A/B smokes; enhancer choice can materially affect temporal identity stability. |
 | `face_detector_model` | (default `yolo_face`) | `retinaface`, `scrfd`, `many` | Recall vs speed trade. `many` for hard-to-detect faces. |
 | `face_landmarker_model` | `2dfan4` | `peppa_wutz` | Newer alternative; check stability. |
 | `frame_colorizer_model` | `ddcolor` | `deoldify_stable` | If colorizing video, `deoldify_stable` is purpose-built for temporal consistency. |
@@ -880,7 +881,7 @@ Items where the source did not yield a confident description. Each `[needs verif
 
 ### Models flagged `[needs verification]`
 
-- **`hyperswap_1a_256`, `hyperswap_1b_256`, `hyperswap_1c_256`** — FaceFusion-native (2025); no public paper or benchmark as of 2026-04. Capability claims are inferred from FaceFusion's positioning of them as defaults.
+- **`hyperswap_1a_256`, `hyperswap_1b_256`, `hyperswap_1c_256`** — FaceFusion-native (2025); no public paper or benchmark as of 2026-04. Capability claims are inferred from FaceFusion's positioning of them as high-end options.
 - **`restoreformer_plus_plus`** — limited upstream activity post-2022; quality positioning vs GFPGAN/CodeFormer is hearsay.
 - **`face_dat_x4`, `real_hatgan_x4`, `real_web_photo_x4`, `ultra_sharp_2_x4`** — newer community / 2024-2025 models; limited third-party comparative evaluation.
 - **`u2net_cloth`, `realistic_rescaler_x4`, `remacri_x4`, `siax_x4`, `swin2_sr_x4`, `tghq_face_x8`, `ultra_sharp_x4`** — community-trained variants without authoritative benchmarks.
@@ -928,4 +929,4 @@ Items where the source did not yield a confident description. Each `[needs verif
   - content_analyser: 3 models (always loaded)
 - **Total setting entries:** 186 individual UI controls across 44 component files. ~95 unique state_manager keys after collapsing per-axis directional sliders (RGB color, padding) into single logical settings.
 - **`[needs verification]` count:** 13 models + 3 settings.
-- **Hardware perspective:** every speed and memory tier is reasoned for the M4 Max + 128 GB RAM + CoreML/CPU configuration. Translate at your own risk to other targets.
+- **Hardware perspective:** every speed and memory tier is reasoned for the M4 Max + 128 GB RAM. Current quality baseline is CPU-only; CoreML/CPU notes are retained for historical run-03 context and future speed experiments.

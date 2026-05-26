@@ -4,7 +4,7 @@ This document captures the **non-default** settings on this fork plus the reason
 
 Also tracks code-level modifications that affect runtime behavior but aren't surfaced as config keys.
 
-Last updated: **2026-04-28** after successful 14,500-frame render.
+Last updated: **2026-05-26** after Codex takeover sync. Current config is Fix E from the flicker diagnosis: `inswapper_128_fp16` + CPU-only + no enhancer.
 
 ## CLI invocation pattern
 
@@ -14,7 +14,7 @@ python facefusion.py headless-run \
   --target-path "/path/to/video.mov" \
   --source-paths /path/to/face.jpeg \
   --output-path "/path/to/output.mov" \
-  --processors face_swapper face_enhancer
+  --processors face_swapper
 ```
 
 Critical: **target and output extensions must match.** `.mov` → `.mov`, `.mp4` → `.mp4`. The processor `pre_process()` enforces this and exits with code 1 if violated.
@@ -54,17 +54,17 @@ Critical: **target and output extensions must match.** `.mov` → `.mov`, `.mp4`
 
 | Key | Value | Why |
 |-----|-------|-----|
-| `processors` | `face_swapper face_enhancer` | Two-pass per frame: swap, then enhance. Each adds ~30-50% to per-frame time but the enhancer materially smooths output around the swap seam. |
-| `face_enhancer_model` | `gfpgan_1.4` | Best mainstream restorer for face swap output. Tested alternatives produced over-smoothed plastic-looking results on this hardware. |
-| `face_enhancer_blend` | `80` | 80% enhanced, 20% original. Avoids the over-restored "everyone looks identical" effect when blend is at 100%. |
-| `face_swapper_model` | `hyperswap_1c_256` | Highest-fidelity face_swapper available in the model set. |
+| `processors` | `face_swapper` | Fix E keeps the enhancer off. The 30-s smoke showed this materially reduced identity flicker versus the run-03 `face_swapper face_enhancer` path. |
+| `face_enhancer_model` | `gfpgan_1.4` | Configured but inactive unless `face_enhancer` is added back to `processors`. Retained for the planned E3 A/B smoke, not part of the current production default. |
+| `face_enhancer_blend` | `80` | Configured but inactive for the current Fix E path. If E3 re-enables GFPGAN, this is the blend value to test first. |
+| `face_swapper_model` | `inswapper_128_fp16` | Fix E stable-video baseline. In the 30-s smoke, it cut identity transitions from 72 to 25 and improved median cosine distance from 0.291 to 0.175. |
 | `face_swapper_pixel_boost` | `512x512` | Process the swap at 512×512 even when the source face is smaller. Recovers detail that would otherwise be lost on close-ups. |
 
 ## `[execution]`
 
 | Key | Value | Why |
 |-----|-------|-----|
-| `execution_providers` | `coreml cpu` | M4 Max benefits enormously from CoreML GPU acceleration. CPU is the fallback per provider when CoreML cannot handle a model. |
+| `execution_providers` | `cpu` | Fix E disables CoreML to avoid the Apple Silicon/CoreML nondeterminism suspected in the flicker diagnosis. CoreML remains available for speed experiments but is not the current quality default. |
 | `execution_thread_count` | `12` | High concurrency within a chunk. With chunking on, the failure blast radius is bounded to one chunk, so high thread count is safe and accelerates throughput. |
 | `chunk_size_frames` | `250` | **Critical.** Frames are processed in 250-frame subprocess chunks (see `facefusion/workflows/chunk_runner.py`). Each chunk is a fresh process tree — model state, ONNX runtime, leaked semaphores all die with it. Set to `0` to disable chunking and revert to single-process. |
 
@@ -118,8 +118,8 @@ Why: see the `RUNS.md` writeup of the silent worker death, frames 778 and 1026, 
 |----------|--------|
 | Short clips (< 250 frames) | `chunk_size_frames = 0` to skip subprocess overhead |
 | Different camera orientation | `face_detector_angles` — drop unused rotations to speed up |
-| Quality over speed | bump `output_video_preset` to `slower` or `veryslow`, increase `face_swapper_pixel_boost` |
-| Speed over quality | drop `face_enhancer` from `--processors`, reduce `pixel_boost` to `256x256` |
+| Quality over speed | keep Fix E first; then optionally A/B `face_enhancer` back on and bump `output_video_preset` to `slower` |
+| Speed over quality | re-enable `coreml cpu` only after accepting the higher flicker risk; reduce `pixel_boost` to `256x256` |
 | Model RAM blowing up | reduce `execution_thread_count` to 4-6, set `video_memory_strategy = moderate` |
 | Different face per scene | switch `face_selector_mode` to `reference` and tighten `reference_face_distance` |
 

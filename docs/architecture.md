@@ -2,14 +2,14 @@
 
 ## Overview
 
-FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, expression and age editing, lip sync, background removal, frame colorization) operating on images and videos via a Gradio dashboard or a headless CLI. This fork (v3.6.0) is a personal-use derivative running locally on Apple Silicon (M4 Max, 128 GB RAM) via the CoreML execution provider, modified for resilience under long-render workloads — silent worker deaths around 5-7% of long renders motivated subprocess chunking, frame-tolerant skip-and-retry, decoupled UI workers, and a battery of diagnostic probes. Companion docs: [`MODELS_AND_SETTINGS.md`](MODELS_AND_SETTINGS.md) catalogs every model and UI setting; [`../settings.md`](../settings.md) narrates the config-of-record; [`../.loop/README.md`](../.loop/README.md) preserves the autonomous fix-and-retry loop pattern; [`../WORKLOG.md`](../WORKLOG.md) tracks active workstreams.
+FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, expression and age editing, lip sync, background removal, frame colorization) operating on images and videos via a Gradio dashboard or a headless CLI. This fork (v3.6.0) is a personal-use derivative running locally on Apple Silicon (M4 Max, 128 GB RAM). Current Fix E quality baseline is CPU-only with `inswapper_128_fp16` and no enhancer; earlier CoreML long-render failures motivated subprocess chunking, frame-tolerant skip-and-retry, decoupled UI workers, and a battery of diagnostic probes. Companion docs: [`MODELS_AND_SETTINGS.md`](MODELS_AND_SETTINGS.md) catalogs every model and UI setting; [`../settings.md`](../settings.md) narrates the config-of-record; [`../.loop/README.md`](../.loop/README.md) preserves the autonomous fix-and-retry loop pattern; [`../WORKLOG.md`](../WORKLOG.md) tracks active workstreams.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Language | Python 3.10+ (conda env `facefusion`) |
-| ML runtime | ONNX Runtime with CoreML + CPU execution providers |
+| ML runtime | ONNX Runtime with CPU execution provider for current quality baseline; CoreML remains available for speed experiments |
 | UI | Gradio (HTTP server, served at `localhost:7860`) |
 | Media I/O | ffmpeg (frame extract, merge, audio restore) |
 | Concurrency | `concurrent.futures.ThreadPoolExecutor` per chunk; subprocess chunks via fork+exec |
@@ -65,7 +65,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
         │  process_temp_frame() per frame:                 │
         │      face_detector → face_landmarker             │
         │      → face_recognizer → face_masker             │
-        │      → processors[face_swapper, face_enhancer]   │
+        │      → processors[face_swapper]                  │
         │      → write_image (in place if successful)      │
         └─────────────────────────────────────────────────┘
                     │ subprocess exits
@@ -158,7 +158,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 | File | Role |
 |---|---|
 | `facefusion.ini` | Default config of record. `chunk_size_frames = 250` is this fork's most important addition. |
-| `~/.claude/plans/sorted-splashing-dewdrop.md` | The current/most-recent plan file (contents change per active task). |
+| `WORKLOG.md` / `.loop/RUNS.md` | Current local continuity and long-run history. |
 | `~/.claude/skills/build-prompt/library/2026-04-28-facefusion-models-settings-reference.md` | The saved prompt that produced `MODELS_AND_SETTINGS.md`. |
 | `.gitignore` | Excludes `.assets/`, `.temp/`, `.caches/`, `.jobs/`, `.omc/`, `.playwright-mcp/`, `.loop/logs/`, `output/*.mov`, `output/*.mp4`, `faces/`, `videos/`, `logs/`, `.DS_Store`, `__pycache__/`. |
 | Env vars on worker | `PYTHONUNBUFFERED=1`, `PYTHONFAULTHANDLER=1`, `FACEFUSION_CHUNK_START`, `FACEFUSION_CHUNK_END`. |
@@ -168,7 +168,7 @@ FaceFusion is a face-manipulation pipeline (face swap, enhancement, upscaling, e
 - **NSFW analyser disabled.** `facefusion/content_analyser.py:analyse_frame` was patched to always return `False`. Acceptable for this personal-use fork; document in `settings.md`.
 - **Subprocess chunking is the load-bearing change.** Without it, long renders die silently around 5-7%. The fork's resilience layer (skip + retry + diagnostic probes) catches Python-level failures but cannot catch native crashes; chunking makes those crashes survivable. Rollback: set `chunk_size_frames = 0`.
 - **CoreML fp16→fp32 silent swaps.** `inswapper_128_fp16` and `real_esrgan_*_fp16` are auto-substituted to their fp32 siblings on macOS/CoreML inside `face_swapper/core.py:508-510` and `frame_enhancer/core.py:563-569`. Don't rely on the fp16 variant being used on this hardware.
-- **Memory peak per chunk on M4 Max:** observed 87 GB on chunk-016 of the 14,500-frame render with `face_swapper + face_enhancer` and `execution_thread_count = 12`. Safe with 128 GB system RAM; tight if a third processor is added or thread count is bumped.
+- **Memory peak per chunk on M4 Max:** observed 87 GB on chunk-016 of the run-03 14,500-frame render with `face_swapper + face_enhancer` and `execution_thread_count = 12`. Current Fix E disables the enhancer and should be lighter, but any processor additions or thread-count changes still need chunked validation.
 - **`.temp/` accumulates fast.** A 14,500-frame render produces 14,500 jpeg files (~5 GB). `.temp/` is gitignored; clear it manually (`rm -rf .temp/*`) when not actively rendering.
 - **The autonomous loop pattern in `.loop/`** is task-agnostic. Reuse for any long-running CLI that may fail in unknown ways and require code edits between attempts.
-- **Currently 11 unpushed commits** on master from the 2026-04-28 session: skip-on-error, retry, image graceful failure, diagnostic probes, WORKLOG, NSFW disable, UI subprocess decoupling, settings & loop docs, MODELS_AND_SETTINGS catalog. Push when reviewed.
+- **Local commits may be ahead of upstream.** This personal fork carries resilience, diagnostics, settings, evaluator, and documentation commits on top of upstream FaceFusion. Check `git status` and `git log origin/master..HEAD` before publishing.
