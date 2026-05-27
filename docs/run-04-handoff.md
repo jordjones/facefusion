@@ -128,6 +128,37 @@ A dry-run of the immediate next chunk should print chunk `041` with range `[1025
 python tools/recover_run04.py --dry-run --start-chunk 41 --end-chunk 41
 ```
 
+## Copy/Paste Resume Commands
+
+Use this block at the start of the next session to verify the paused state, then run chunk `041` through the end (`058`) and finalize the MOV:
+
+```sh
+cd /Users/jordanjones/Documents/facefusion
+
+pgrep -fl 'facefusion.py|headless-2026-05-26-18-59-40|chunk-run|recover_run04.py' || true
+find "/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1" -maxdepth 1 -type f -name "*.png" | wc -l
+find logs -maxdepth 1 -type f -name '*headless-2026-05-26-18-59-40*chunk-041*' -print
+
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate facefusion
+
+python tools/recover_run04.py --dry-run --start-chunk 41 --end-chunk 41
+python tools/recover_run04.py --start-chunk 41
+```
+
+Expected pre-run state:
+
+- No active FaceFusion/recovery process.
+- Temp PNG count is `14557`.
+- The chunk `041` log search prints nothing.
+- Dry-run reports chunk `041` range `[10250,10500)` and `finalize skipped`.
+
+When `python tools/recover_run04.py --start-chunk 41` completes normally, it should process chunks `041` through `058` and finalize:
+
+```text
+output/My-Movie-1-faceswap-shan-run-04.mov
+```
+
 ## Verification Commands For Next Session
 
 Run these before touching recovery:
