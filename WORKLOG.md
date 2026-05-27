@@ -1,6 +1,6 @@
 # FaceFusion Worklog
 
-Last updated: 2026-05-26 (Run 04 chunk-15 handoff)
+Last updated: 2026-05-27 (Run 04 chunk-40 handoff)
 
 ## Ongoing Workstreams
 
@@ -17,14 +17,14 @@ Last updated: 2026-05-26 (Run 04 chunk-15 handoff)
 | Max "other"-run length | 1.33 s | <0.5 s | 0.33 s |
 | Median cosine distance to source | 0.291 | <0.20 | 0.175 |
 
-- **Context:** Diagnosed run-03's flicker as a combination of `hyperswap_1c_256` (community-reported instability), CoreML FP16 non-determinism on Apple Silicon, and GFPGAN's lack of temporal smoothing. Fix E (`inswapper_128_fp16` + CPU-only + no enhancer) cleared all four targets in a 30-s smoke. Run 04 full rerender was started from the Fix E baseline on 2026-05-26, then parent PID `74022` disappeared after chunk 14 completed before the intended chunk-20 handoff pause.
-- **Run 04 handoff state:** Future session should resume at zero-indexed chunk `15` (`[3750,4000)`) for job `headless-2026-05-26-18-59-40`; chunks `000` through `014` have completion logs, no `chunk-015` or `chunk-020` log exists, no FaceFusion process remains, and `output/My-Movie-1-faceswap-shan-run-04.mov` has not been finalized. Do not use `kill -CONT 74022`; that PID no longer exists.
-- **Temp-frame preservation:** Preserve the actual Run 04 temp directory `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` until recovery is complete. Current read-only check found 14,557 PNG temp frames there, all newer than the Run 04 start time. The project-local `.temp/facefusion/My Movie 1/` frame set is stale from Apr 28 and must not be used for Run 04 continuation. Chunk ranges are code offsets into `resolve_temp_frame_paths`, not a guarantee that filename numbers match frame indexes. Do not run a fresh `headless-run`/`job-run` against the same target before recovery, because setup clears the target temp directory.
+- **Context:** Diagnosed run-03's flicker as a combination of `hyperswap_1c_256` (community-reported instability), CoreML FP16 non-determinism on Apple Silicon, and GFPGAN's lack of temporal smoothing. Fix E (`inswapper_128_fp16` + CPU-only + no enhancer) cleared all four targets in a 30-s smoke. Run 04 full rerender was started from the Fix E baseline on 2026-05-26; after the original parent PID disappeared at chunk 14, the recovery helper resumed chunks `015` through `040` on 2026-05-27 and intentionally paused there for handoff.
+- **Run 04 handoff state:** Future session should resume at zero-indexed chunk `41` (`[10250,10500)`) for job `headless-2026-05-26-18-59-40`; chunks `000` through `040` have completion logs ending with normal `hard_exit(0)`/`ATEXIT` diagnostics, no FaceFusion process remains, and `output/My-Movie-1-faceswap-shan-run-04.mov` has not been finalized. Do not use `kill -CONT 74022`; that PID no longer exists.
+- **Temp-frame preservation:** Preserve the actual Run 04 temp directory `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` until recovery is complete. Current read-only check after chunk `040` found exactly 14,557 PNG temp frames there. The project-local `.temp/facefusion/My Movie 1/` frame set is stale from Apr 28 and must not be used for Run 04 continuation. Chunk ranges are code offsets into `resolve_temp_frame_paths`, not a guarantee that filename numbers match frame indexes. Do not run a fresh `headless-run`/`job-run` against the same target before recovery, because setup clears the target temp directory.
 - **Eval tool:** `tools/evaluate_swap.py` — per-frame ArcFace cosine-distance evaluator with `--ref-match`, `--start-frame`/`--end-frame`/`--stride` flags. Reusable against any future render to score against the scoreboard.
-- **Files:** `tools/evaluate_swap.py`, `facefusion.ini` (Fix E values), `docs/run-04-handoff.md`, `.jobs/queued/headless-2026-05-26-18-59-40.json`, `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` (actual Run 04 temp frames; must preserve), `logs/job-20260526-190205-headless-2026-05-26-18-59-40-chunk-000-00000000-00000250.log` through `logs/job-20260526-212354-headless-2026-05-26-18-59-40-chunk-014-00003500-00003750.log`, `output/eval-run-03-window-1800-2700.csv` (baseline), `output/eval-fixE-smoke.csv` (target met), `output/eval-input-window-1800-2700.csv` (input ceiling reference), `videos/My-Movie-1-input-window-1800-2700.mov` (input clip for visual reference)
+- **Files:** `tools/evaluate_swap.py`, `tools/recover_run04.py`, `facefusion.ini` (Fix E values), `docs/run-04-handoff.md`, `.jobs/queued/headless-2026-05-26-18-59-40.json`, `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` (actual Run 04 temp frames; must preserve), `logs/job-20260526-190205-headless-2026-05-26-18-59-40-chunk-000-00000000-00000250.log` through `logs/job-20260527-075441-headless-2026-05-26-18-59-40-chunk-040-00010000-00010250.log`, `output/eval-run-03-window-1800-2700.csv` (baseline), `output/eval-fixE-smoke.csv` (target met), `output/eval-input-window-1800-2700.csv` (input ceiling reference), `videos/My-Movie-1-input-window-1800-2700.mov` (input clip for visual reference)
 - **Plan:** `~/.claude/plans/sunny-foraging-bengio.md`
-- **Last session:** 2026-05-26
-- **Next:** Start the next session with `docs/run-04-handoff.md`. Verify no FaceFusion PIDs remain, verify chunks `000`-`014` logs and `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` still exist, then resume chunk processing from chunk `15` with `--temp-path /var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T` and without clearing temp frames. After chunks `15`-`58` complete, merge frames, restore audio, and finalize `output/My-Movie-1-faceswap-shan-run-04.mov`; then evaluate the output with `tools/evaluate_swap.py`.
+- **Last session:** 2026-05-27
+- **Next:** Start the next session with `docs/run-04-handoff.md`. Verify no FaceFusion PIDs remain, verify chunks `000`-`040` logs and `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` still exist with 14,557 PNG frames, then resume chunk processing from chunk `41` with `python tools/recover_run04.py --start-chunk 41`. After chunks `041`-`058` complete, the helper finalizes `output/My-Movie-1-faceswap-shan-run-04.mov`; then evaluate the output with `tools/evaluate_swap.py`.
 
 ## Active Projects
 
@@ -85,6 +85,12 @@ Last updated: 2026-05-26 (Run 04 chunk-15 handoff)
 (none)
 
 ## Session Log
+
+### 2026-05-27
+- Corrected the Run 04 handoff path to the actual macOS temp root `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T`, added `tools/recover_run04.py`, and committed the recovery helper (`42cc430`, `57ba9a9`).
+- Resumed Run 04 from chunk `015`, then executed bounded recovery runs through chunk `040` at the user's updated stop boundary. Chunk `026` had one interrupted partial log from a terminated open-ended wrapper; the complete proof log is `logs/job-20260527-062922-headless-2026-05-26-18-59-40-chunk-026-00006500-00006750.log`.
+- Verified chunks `000` through `040` have successful completion logs with `hard_exit(0)` and `ATEXIT`, verified the actual temp directory still contains exactly 14,557 PNG frames, verified no FaceFusion/recovery PIDs remain, and verified the next dry-run target is chunk `041` (`[10250,10500)`).
+- Handoff target is now chunk `041`. Run `source /opt/anaconda3/etc/profile.d/conda.sh && conda activate facefusion && python tools/recover_run04.py --start-chunk 41` to process chunks `041` through `058` and finalize the Run 04 MOV.
 
 ### 2026-05-26
 - Took over the Claude-era FaceFusion state, committed evaluator/docs/chunk-run fixes, and launched Run 04 with Fix E (`inswapper_128_fp16`, CPU provider, face swapper only) against `videos/My Movie 1.mov`.
