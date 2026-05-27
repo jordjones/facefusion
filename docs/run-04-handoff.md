@@ -53,21 +53,22 @@ No `chunk-015` log exists. No `chunk-020-00005000-00005250.log` exists.
 Preserve this directory exactly as-is:
 
 ```text
-.temp/facefusion/My Movie 1/
+/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/
 ```
 
-Read-only checks at handoff:
+Read-only checks during resume on 2026-05-27 corrected the handoff path. The project-local `.temp/facefusion/My Movie 1/` frame set is stale from Apr 28 and must not be used for Run 04 continuation.
+
+Read-only checks of the actual Run 04 temp directory:
 
 ```text
 PNG count: 14557
-No temp files newer than Run 04 start time: 2026-05-26 18:59:40
-Missing in code range 0..3749: .temp/facefusion/My Movie 1/00000000.png
-Present continuous filename range checked: 00000001.png through 00003750.png
+All temp files newer than Run 04 start time: 2026-05-26 18:59:40
+Present checked files: 00000001.png, 00003750.png, 00003751.png, 00014557.png
 ```
 
-Important nuance: chunk ranges in logs and code are offsets into `resolve_temp_frame_paths()`, not guaranteed filename numbers. Because `00000000.png` is absent and `00014557.png` exists, do not infer chunk 15 filenames by subtracting one or renaming files. Keep the sorted temp-frame list stable.
+Important nuance: chunk ranges in logs and code are offsets into `resolve_temp_frame_paths()`, not guaranteed filename numbers. Keep the sorted temp-frame list stable.
 
-Do not delete `.temp/facefusion/My Movie 1/`. Do not run a fresh `headless-run` or `job-run` against this target before the recovery decision, because `image_to_video.setup()` clears and recreates the target temp directory.
+Do not delete `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/`. Do not run a fresh `headless-run` or `job-run` against this target before the recovery decision, because `image_to_video.setup()` clears and recreates the target temp directory.
 
 ## Resume Target
 
@@ -93,6 +94,7 @@ PYTHONUNBUFFERED=1 \
 PYTHONFAULTHANDLER=1 \
 caffeinate -dimsu python -u facefusion.py chunk-run headless-2026-05-26-18-59-40 0 \
   --config-path facefusion.ini \
+  --temp-path /var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T \
   --jobs-path .jobs \
   --execution-providers cpu \
   --execution-thread-count 12 \
@@ -104,7 +106,7 @@ Repeat for chunks `16` through `58`, updating the chunk number and `[start,end)`
 1. Uses the existing job args from `.jobs/queued/headless-2026-05-26-18-59-40.json`.
 2. Processes chunk ranges `15..58` against the existing temp directory.
 3. Calls the same merge/audio/finalize path that the parent would have called.
-4. Leaves `.temp/facefusion/My Movie 1/` untouched until the final output is verified.
+4. Leaves `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/` untouched until the final output is verified.
 
 ## Verification Commands For Next Session
 
@@ -114,8 +116,8 @@ Run these before touching recovery:
 pgrep -fl 'facefusion.py|headless-2026-05-26-18-59-40|chunk-run' || true
 ls -lh logs/*headless-2026-05-26-18-59-40*chunk-014-00003500-00003750.log
 ls -lh logs/*headless-2026-05-26-18-59-40*chunk-015* 2>/dev/null || true
-find ".temp/facefusion/My Movie 1" -maxdepth 1 -type f -name "*.png" | wc -l
-ls -lh ".temp/facefusion/My Movie 1/00000001.png" ".temp/facefusion/My Movie 1/00003750.png" ".temp/facefusion/My Movie 1/00014557.png"
+find "/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1" -maxdepth 1 -type f -name "*.png" | wc -l
+ls -lh "/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/00000001.png" "/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/00003750.png" "/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/00014557.png"
 ```
 
 Expected before recovery:
@@ -123,7 +125,7 @@ Expected before recovery:
 - No FaceFusion PIDs.
 - Chunk 14 log exists.
 - Chunk 15 log absent.
-- Temp PNG count remains `14557`.
+- Temp PNG count remains `14557` in `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/`.
 
 ## Final Output Validation
 
