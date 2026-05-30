@@ -1,17 +1,31 @@
 # Run 04 Handoff
 
 Created: 2026-05-26 21:45 AST
-Updated: 2026-05-27 08:08 AST
+Updated: 2026-05-30 07:58 AST
+
+## Completed State
+
+Run 04 is complete. Do not use the old chunk-41 resume commands below unless explicitly investigating the historical recovery path.
+
+- Final output: `output/My-Movie-1-faceswap-shan-run-04.mov`
+- Final job id: `headless-2026-05-27-18-33-04`
+- Full rerun log: `logs/run04-full-rerun-20260527-183249.log`
+- Job record: `.jobs/completed/headless-2026-05-27-18-33-04.json`
+- Chunk proof logs: `logs/job-20260527-184155-headless-2026-05-27-18-33-04-chunk-000-00000000-00000250.log` through `logs/job-20260528-033749-headless-2026-05-27-18-33-04-chunk-058-00014500-00014557.log`
+- Verification on 2026-05-30 found 59/59 chunks completed, `processing to video succeeded`, `hard_exit(0)`, zero failure markers, valid H.264 video plus AAC audio, and no active FaceFusion/ffmpeg/evaluator PIDs.
+- The perpetual terminal output after completion was stale agent PreToolUse hook activity, not active video rendering.
+
+Next action: visually inspect `output/My-Movie-1-faceswap-shan-run-04.mov`; if the quality is not acceptable, run a full scoreboard-compatible evaluator pass before deciding on another render.
 
 ## Goal
 
-Resume Run 04 at chunk 41 without losing the existing temp-frame state, complete remaining chunks, then merge frames, restore audio, and finalize:
+Historical goal: resume Run 04 at chunk 41 without losing the existing temp-frame state, complete remaining chunks, then merge frames, restore audio, and finalize:
 
 ```text
 output/My-Movie-1-faceswap-shan-run-04.mov
 ```
 
-## Current State
+## Historical Recovery State
 
 - Project: `/Users/jordanjones/Documents/facefusion`
 - Job id: `headless-2026-05-26-18-59-40`
@@ -23,7 +37,7 @@ output/My-Movie-1-faceswap-shan-run-04.mov
 - Expected chunks: `59`, zero-indexed `000` through `058`
 - Parent PID `74022` no longer exists. Do not use `kill -CONT 74022`; there is nothing to resume by signal.
 
-Run 04 originally stopped after chunk 14 completed. Recovery resumed on 2026-05-27 and intentionally paused after chunk 40 completed. No FaceFusion process was running at handoff verification after the chunk-40 pause. The final MOV has not been created/finalized yet.
+Run 04 originally stopped after chunk 14 completed. Recovery resumed on 2026-05-27 and intentionally paused after chunk 40 completed. No FaceFusion process was running at handoff verification after the chunk-40 pause. At that historical handoff, the final MOV had not been created/finalized yet.
 
 ## Completed Chunk Logs
 
@@ -97,7 +111,7 @@ Important nuance: chunk ranges in logs and code are offsets into `resolve_temp_f
 
 Do not delete `/var/folders/ps/3p6bv7g917xc_mlskxs4sn7c0000gn/T/facefusion/My Movie 1/`. Do not run a fresh `headless-run` or `job-run` against this target before the recovery decision, because `image_to_video.setup()` clears and recreates the target temp directory.
 
-## Resume Target
+## Historical Resume Target
 
 Start at zero-indexed chunk `41`.
 
@@ -128,7 +142,7 @@ A dry-run of the immediate next chunk should print chunk `041` with range `[1025
 python tools/recover_run04.py --dry-run --start-chunk 41 --end-chunk 41
 ```
 
-## Copy/Paste Resume Commands
+## Historical Copy/Paste Resume Commands
 
 Use this block at the start of the next session to verify the paused state, then run chunk `041` through the end (`058`) and finalize the MOV:
 
@@ -159,7 +173,7 @@ When `python tools/recover_run04.py --start-chunk 41` completes normally, it sho
 output/My-Movie-1-faceswap-shan-run-04.mov
 ```
 
-## Verification Commands For Next Session
+## Historical Verification Commands
 
 Run these before touching recovery:
 
@@ -182,18 +196,17 @@ Expected before recovery:
 
 ## Final Output Validation
 
-After finalizing `output/My-Movie-1-faceswap-shan-run-04.mov`, run the evaluator against the same scoreboard window used for Fix E:
+After finalizing `output/My-Movie-1-faceswap-shan-run-04.mov`, run the evaluator against the same scoreboard window used for Fix E. The current script does not support `--summary`; use `PYTHONPATH=.` when running it as a file from the repo root:
 
 ```sh
 source /opt/anaconda3/etc/profile.d/conda.sh
 conda activate facefusion
-python tools/evaluate_swap.py \
+PYTHONPATH=. python tools/evaluate_swap.py \
   --source faces/shan_1.jpeg \
   --target output/My-Movie-1-faceswap-shan-run-04.mov \
   --start-frame 1800 \
   --end-frame 2700 \
-  --stride 1 \
+  --stride 2 \
   --ref-match \
-  --csv output/eval-run-04-window-1800-2700.csv \
-  --summary output/eval-run-04-window-1800-2700.txt
+  --csv output/eval-run-04-window-1800-2700.csv
 ```
