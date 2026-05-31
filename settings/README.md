@@ -15,7 +15,7 @@ YYYY-MM-DD-run-XX-short-name.ini
 
 Each run entry should include:
 
-- status: `known-good`, `experimental`, `rejected`, or `historical`
+- status: `known-good`, `experimental`, `rejected`, `historical`, or `reviewed`
 - source, target, output, and job id when available
 - the meaningful config levers and what changed from the prior baseline
 - evidence: output path, logs, evaluator CSVs, visual notes, or ffprobe checks
@@ -29,3 +29,4 @@ into this folder. Link to existing project artifacts instead.
 | Entry | Status | Summary |
 |---|---|---|
 | `2026-05-27-run-04-fix-e-known-good.md` | known-good | Improved Run 04 baseline: `inswapper_128_fp16`, CPU-only, `face_swapper` only, chunked render. |
+| `2026-05-31-run-04-quality-review.md` | reviewed | Run 04 metrics and visual diagnosis; recommends landmark-refinement, multi-source, and mask-edge smoke tests before the next full render. |

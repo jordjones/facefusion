@@ -1,7 +1,7 @@
 # File Tree: facefusion
 
 **Path**: /Users/jordanjones/Documents/facefusion
-**Generated**: 2026-05-31 18:51
+**Generated**: 2026-05-31 19:35
 
 ```
 ./.claude/scheduled_tasks.lock
@@ -212,6 +212,7 @@
 ./settings.md
 ./settings/2026-05-27-run-04-fix-e-known-good.md
 ./settings/2026-05-27-run-04-fix-e.ini
+./settings/2026-05-31-run-04-quality-review.md
 ./settings/README.md
 ./tests/__init__.py
 ./tests/helper.py

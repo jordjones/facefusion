@@ -1,0 +1,21 @@
+video:           output/My-Movie-1-faceswap-shan-run-04.mov
+  frames total:  14557
+  fps:           30.000
+  sampled:       500
+  selector:      source-match (closest cosine to source)
+  detected:      330 (66.0%)
+  multi-face:    16/330 detected frames had >1 face
+cosine distance to source (lower = closer to source identity):
+  mean:          0.2744
+  median:        0.2070
+  p05:           0.1198
+  p95:           0.8276
+  min:           0.1054
+  max:           1.0783
+  < 0.4:        280/330 (84.8%)
+  < 0.5:        293/330 (88.8%)
+  < 0.6:        304/330 (92.1%)
+  < 0.7:        311/330 (94.2%)
+detector score: mean 0.773  min 0.515
+landmarker score: mean 0.856  min 0.090
+wrote output/eval-run-04-full-sample-500.csv
