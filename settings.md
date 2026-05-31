@@ -4,7 +4,12 @@ This document captures the **non-default** settings on this fork plus the reason
 
 Also tracks code-level modifications that affect runtime behavior but aren't surfaced as config keys.
 
-Last updated: **2026-05-26** after Codex takeover sync. Current config is Fix E from the flicker diagnosis: `inswapper_128_fp16` + CPU-only + no enhancer.
+Last updated: **2026-05-31** after creating the known-good settings registry.
+Current config is Fix E from the flicker diagnosis: `inswapper_128_fp16` + CPU-only + no enhancer.
+
+Known-good and rejected run settings are tracked in `settings/`. Start with
+`settings/2026-05-27-run-04-fix-e-known-good.md` for the Run 04 baseline that
+improved the output.
 
 ## CLI invocation pattern
 

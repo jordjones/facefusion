@@ -1,6 +1,6 @@
 # FaceFusion Worklog
 
-Last updated: 2026-05-30 (Run 04 final-output handoff)
+Last updated: 2026-05-31 (Run 04 known-good settings registry)
 
 ## Ongoing Workstreams
 
@@ -22,7 +22,8 @@ Last updated: 2026-05-30 (Run 04 final-output handoff)
 - **Loop diagnosis:** The perpetual terminal activity was stale Codex/Claude tool-hook output after completion, not active video processing. Current verification found no `facefusion.py`, `ffmpeg`, `evaluate_swap.py`, or Run 04 worker process. A stale Codex process in the FaceFusion cwd was observed but not killed.
 - **Temp-frame note:** The old chunk-41 recovery instructions are obsolete for Run 04 because the final MOV has been finalized. Preserve logs/output for provenance; no current resume signal or recovery command is needed.
 - **Eval tool:** `tools/evaluate_swap.py` — per-frame ArcFace cosine-distance evaluator with `--ref-match`, `--start-frame`/`--end-frame`/`--stride` flags. Reusable against any future render to score against the scoreboard.
-- **Files:** `tools/evaluate_swap.py`, `tools/recover_run04.py`, `facefusion.ini` (Fix E values), `docs/run-04-handoff.md`, `.jobs/completed/headless-2026-05-27-18-33-04.json`, `logs/run04-full-rerun-20260527-183249.log`, `logs/job-20260527-184155-headless-2026-05-27-18-33-04-chunk-000-00000000-00000250.log` through `logs/job-20260528-033749-headless-2026-05-27-18-33-04-chunk-058-00014500-00014557.log`, `output/My-Movie-1-faceswap-shan-run-04.mov`, `output/eval-run-03-window-1800-2700.csv` (baseline), `output/eval-fixE-smoke.csv` (target met), `output/eval-input-window-1800-2700.csv` (input ceiling reference), `videos/My-Movie-1-input-window-1800-2700.mov` (input clip for visual reference)
+- **Settings registry:** `settings/2026-05-27-run-04-fix-e-known-good.md` and `settings/2026-05-27-run-04-fix-e.ini` preserve the improved Run 04/Fix E baseline for future renders.
+- **Files:** `tools/evaluate_swap.py`, `tools/recover_run04.py`, `facefusion.ini` (Fix E values), `settings/README.md`, `settings/2026-05-27-run-04-fix-e-known-good.md`, `settings/2026-05-27-run-04-fix-e.ini`, `docs/run-04-handoff.md`, `.jobs/completed/headless-2026-05-27-18-33-04.json`, `logs/run04-full-rerun-20260527-183249.log`, `logs/job-20260527-184155-headless-2026-05-27-18-33-04-chunk-000-00000000-00000250.log` through `logs/job-20260528-033749-headless-2026-05-27-18-33-04-chunk-058-00014500-00014557.log`, `output/My-Movie-1-faceswap-shan-run-04.mov`, `output/eval-run-03-window-1800-2700.csv` (baseline), `output/eval-fixE-smoke.csv` (target met), `output/eval-input-window-1800-2700.csv` (input ceiling reference), `videos/My-Movie-1-input-window-1800-2700.mov` (input clip for visual reference)
 - **Validation:** `ffprobe` reports a valid MOV with H.264 video (1280x720, 30 fps, 14,557 frames, 485.233s) and AAC audio (485.257s). `ffmpeg -v error` decode smoke passed for the first video frame and first second of audio. Bounded evaluator smoke on frames 1800-2700, stride 2, source-match selector sampled 451 frames, detected 308, and reported median cosine distance `0.1706` with 92.2% of detected frames below 0.4. Git status was clean before handoff edits.
 - **Plan:** `~/.claude/plans/sunny-foraging-bengio.md`
 - **Last session:** 2026-05-30
@@ -87,6 +88,11 @@ Last updated: 2026-05-30 (Run 04 final-output handoff)
 (none)
 
 ## Session Log
+
+### 2026-05-31
+- Added `settings/` as the durable settings registry for configs that have actually been tried.
+- Recorded Run 04/Fix E as the current known-good improved baseline, with a human-readable run record plus a reusable `.ini` snapshot.
+- Linked the registry from `settings.md` and this workstream so future config iterations start from the preserved Run 04 baseline.
 
 ### 2026-05-30
 - Handoff for the completed Run 04 production render and the prior terminal session that entered a PreToolUse hook loop after completion.
