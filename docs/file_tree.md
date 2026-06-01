@@ -1,7 +1,7 @@
 # File Tree: facefusion
 
 **Path**: /Users/jordanjones/Documents/facefusion
-**Generated**: 2026-05-31 20:35
+**Generated**: 2026-06-01 07:07
 
 ```
 ./.assets/models/2dfan4.hash
@@ -2046,10 +2046,12 @@
 ./.jobs/completed/headless-2026-04-28-14-58-11.json
 ./.jobs/completed/headless-2026-04-28-15-25-49.json
 ./.jobs/completed/headless-2026-05-27-18-33-04.json
+./.jobs/completed/headless-2026-06-01-03-58-32.json
 ./.jobs/completed/ui-2026-04-02-10-04-21.json
 ./.jobs/completed/ui-2026-04-21-14-05-19.json
 ./.jobs/failed/headless-2026-03-26-11-40-00.json
 ./.jobs/failed/headless-2026-04-28-08-41-38.json
+./.jobs/failed/headless-2026-06-01-03-12-27.json
 ./.jobs/failed/ui-2026-03-26-10-57-08.json
 ./.jobs/failed/ui-2026-03-26-11-00-09.json
 ./.jobs/failed/ui-2026-03-26-11-03-45.json
@@ -2060,6 +2062,8 @@
 ./.jobs/failed/ui-2026-04-21-14-01-12.json
 ./.jobs/queued/headless-2026-04-28-08-42-54.json
 ./.jobs/queued/headless-2026-05-26-18-59-40.json
+./.jobs/queued/headless-2026-06-01-03-13-06.json
+./.jobs/queued/headless-2026-06-01-03-52-39.json
 ./.jobs/queued/ui-2026-04-10-04-27-09.json
 ./.jobs/queued/ui-2026-04-21-14-16-30.json
 ./.jobs/queued/ui-2026-04-21-15-27-10.json
@@ -17620,7 +17624,10 @@
 ./facefusion/workflows/image_to_image.py
 ./facefusion/workflows/image_to_video.py
 ./faces/IMG_0323.jpg
-./faces/IMG_2627.jpg
+./faces/kail/kail_1.jpg
+./faces/kail/kail_2.jpeg
+./faces/kail/kail_3.jpeg
+./faces/kail/kail_4.jpeg
 ./faces/shan_1.jpeg
 ./install.py
 ./launch.command
@@ -17648,11 +17655,13 @@
 ./output/eval-run-04-full-sample-500.txt
 ./output/eval-run-04-window-1800-2700.csv
 ./output/eval-run-04-window-1800-2700.txt
+./output/intensity-60-kail-run-03-kail1-kail3-boxmask-pb256.mp4
 ./requirements.txt
 ./settings.md
 ./settings/2026-05-27-run-04-fix-e-known-good.md
 ./settings/2026-05-27-run-04-fix-e.ini
 ./settings/2026-05-31-run-04-quality-review.md
+./settings/2026-06-01-intensity-kail-smoke.md
 ./settings/README.md
 ./tests/__init__.py
 ./tests/helper.py
@@ -17707,4 +17716,6 @@
 ./videos/My-Movie-1-input-window-1800-2700.mov
 ./videos/SpankBang.com_full+video+miranda+miller+porn+debut+backroom+casting+classic_720p.mp4
 ./videos/intensity.mp4
+./videos/intensity_120.mp4
+./videos/intensity_60.mp4
 ```
