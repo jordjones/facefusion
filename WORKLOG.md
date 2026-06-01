@@ -95,6 +95,8 @@ Last updated: 2026-05-31 (Run 04 quality review)
 - Linked the registry from `settings.md` and this workstream so future config iterations start from the preserved Run 04 baseline.
 - Reviewed the completed Run 04 MOV with a stride-1 scoreboard pass and a 500-frame full-video sample; saved evaluator outputs under `output/eval-run-04-*`.
 - Added `settings/2026-05-31-run-04-quality-review.md` with next smoke candidates. Run 04 is improved but not closed under the stricter pass; next bounded test is `face_landmarker_score = 0.60` as a landmark-refinement threshold.
+- Committed `fc8b79a` for the quality review and tried to push `master` to `origin/master`; GitHub returned 403 because `origin` points at `facefusion/facefusion.git` and the current authenticated user does not have push permission.
+- Handoff complete locally; remote publish still needs either a writable fork or upstream access.
 
 ### 2026-05-30
 - Handoff for the completed Run 04 production render and the prior terminal session that entered a PreToolUse hook loop after completion.
