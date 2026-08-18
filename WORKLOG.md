@@ -94,6 +94,7 @@ Last updated: 2026-08-18 (merged upstream v3.8.2)
 - **Files:** all fork-patched files under `facefusion/` (13 files), `tests/test_chunk_runner.py`, `facefusion.ini`
 - **Last session:** 2026-08-18
 - **Next:** full stride-1 scoreboard on frames 1800-2700 vs Fix E baseline; consider CoreML re-test now that upstream ships selective MLProgram per-model.
+- **Post-382 stride-1 revalidation (2026-08-18):** `faces/shan_1.jpeg` × `output/My-Movie-1-faceswap-shan-run-04.mov`, frames 1800–2700 stride 1 — transitions **37**, shan share **91.1%**, median cosine **0.1714**, mean shan-run **1.57 s**, max other-run **0.37 s**. Matches prior Run 04 strict review within detector noise (619 vs 621 detected). Artifacts: `output/eval-run-04-post382-window-1800-2700.{csv,txt}`.
 
 ## Completed Workstreams
 
