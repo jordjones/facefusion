@@ -60,6 +60,6 @@ Known-good baseline: Fix E — `settings/2026-05-27-run-04-fix-e-known-good.md`.
 ## Git remotes
 
 - `upstream` → `https://github.com/facefusion/facefusion.git` (read-only)
-- `origin` → writable fork (personal or Cursor-hosted)
+- `origin` → `https://github.com/jordjones/facefusion.git` (writable fork)
 
 Sync: `git fetch upstream` then merge/rebase on an upgrade branch.
