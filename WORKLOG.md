@@ -1,6 +1,6 @@
 # FaceFusion Worklog
 
-Last updated: 2026-08-18 (Cursor agent onboarding + upgrade workstream)
+Last updated: 2026-08-18 (merged upstream v3.8.2)
 
 ## Ongoing Workstreams
 
@@ -37,7 +37,7 @@ Last updated: 2026-08-18 (Cursor agent onboarding + upgrade workstream)
 - **Motivation:** Current stack underperforms on all three axes we care about — quality is only okay (identity flicker, dropouts), speed is brutal (~14.5k-frame / 8-min video = 3h27m), and the models/packages we lean on are ~2 years old. Suspicion that newer models/settings and unused hardware acceleration can fix all three.
 - **Scope (per 2026-07-23 decision):** Stay within FaceFusion (upgrading the FaceFusion/onnxruntime version is in-scope; switching to DeepFaceLab/ComfyUI/Rope/etc. is out). Hardware target is fixed: Apple **M4 Max** (40-core GPU, 16-core Neural Engine, 128 GB unified, Metal 3 / MPS, **no CUDA**).
 - **Grounding facts:**
-  - Fork is at FaceFusion **v3.6.0** (upstream `facefusion/facefusion`), not as old as assumed — full modern roster present.
+  - Fork is at FaceFusion **v3.8.2** (merged 2026-08-18 from `upstream/master`).
   - Swappers available: `inswapper_128` / `inswapper_128_fp16`, `hyperswap_1a/1b/1c_256`, `ghost_1/2/3_256`, `simswap_256` / `simswap_unofficial_512`, `blendswap_256`, `uniface_256`, `hififace_unofficial_256`.
   - Enhancers available: `gfpgan_1.2/1.3/1.4`, `codeformer`, `gpen_bfr_256/512/1024/2048`, `restoreformer_plus_plus`.
   - **Prime speed lead:** we force **CPU-only** (inswapper_128_fp16, no enhancer) to dodge CoreML FP16 non-determinism → the 40-core GPU + Neural Engine sit idle for the entire render. `facefusion/execution.py` configures the CoreML EP with only `{SpecializationStrategy: FastPrediction}` + a model-cache dir — **no `MLComputeUnits` or model-format control**, the likely direct cause of the FP16 flicker we papered over.
@@ -79,21 +79,21 @@ Last updated: 2026-08-18 (Cursor agent onboarding + upgrade workstream)
 
 ### Upgrade to FaceFusion 3.8.2
 - **Goal:** Rebase 34 fork commits onto upstream v3.8.2 while preserving chunking, resilience, and Fix E config.
-- **Status:** `planned` — tracked separately from Find better; agent onboarding complete first.
-- **Context:** Fork is at v3.6.0; upstream is v3.8.2 (13 upstream commits since merge-base `57fcb86`, 118 files changed). High-conflict files: `core.py`, `execution.py`, `program.py`, `workflows/image_to_video.py`, `workflows/image_to_image.py`. Upstream added `workflows/to_video.py`, `to_image.py`, `workflows/core.py`, face tracker, video manager.
+- **Status:** `testing` — merge of `upstream/master` (tag 3.8.2) completed 2026-08-18; fork patches ported onto the new `to_video.py` / `to_image.py` workflow layer. Smoke + scoreboard verification still pending.
+- **Context:** Merge brought in face tracker, processor-driven model loading, FFmpeg video manager, `workflow-strategy` (disk/memory), AV1, CoreML cache/fp16 fixes, VRAM leak fix. Conflicts resolved in `facefusion.ini`, `core.py`, `image_to_image.py`, `image_to_video.py`. Chunking now lives in `to_video.process_disk_frames()`; image try/except in `to_image.process_image()`.
 - **Approach:**
   1. Push 34 local commits to writable `origin` remote (Cursor-hosted or personal fork)
   2. Branch `upgrade/3.8.2` from current master
-  3. Merge or rebase `upstream/master` (tag `3.8.2`)
-  4. Resolve conflicts file-by-file — prioritize `chunk_runner.py` → new `workflows/to_video.py`, upstream `execution.py` MLProgram fix, `image_to_video.py` resilience hooks
+  3. Merge or rebase `upstream/master` (tag `3.8.2`) — **done on master**
+  4. Resolve conflicts file-by-file — prioritize `chunk_runner.py` → new `workflows/to_video.py`, upstream `execution.py` MLProgram fix, `image_to_video.py` resilience hooks — **done**
   5. Port `tests/test_chunk_runner.py`; run upstream test suite
   6. Smoke: 10s slice + `evaluate_swap.py` scoreboard pass
   7. Full render benchmark vs Fix E baseline
 - **Expected wins:** upstream CoreML fp16 fixes (3.7.0, 3.8.1), face tracker dropout refill (3.7.0), processor-driven model loading (~30–40 s/chunk reload), FFmpeg 9 compatibility, VRAM leak fix.
-- **Risk:** chunking architecture may need redesign against new `video_manager` / `workflow-strategy` in 3.8.0.
+- **Risk:** chunking architecture may need redesign against new `video_manager` / `workflow-strategy` in 3.8.0. Default `workflow_strategy` is `memory`; this fork pins `disk` so chunk subprocesses still see extracted frames.
 - **Files:** all fork-patched files under `facefusion/` (13 files), `tests/test_chunk_runner.py`, `facefusion.ini`
 - **Last session:** 2026-08-18
-- **Next:** create writable remote, push fork commits, open `upgrade/3.8.2` branch.
+- **Next:** run `tests/test_chunk_runner.py`, then a 10s disk-strategy smoke with `evaluate_swap.py`.
 
 ## Completed Workstreams
 
@@ -133,7 +133,8 @@ Last updated: 2026-08-18 (Cursor agent onboarding + upgrade workstream)
 
 ### 2026-08-18
 - Introduced Cursor agent infrastructure: `AGENTS.md` (thin pointer doc), `.cursor/rules/` (project, python, shell rules).
-- Documented upstream gap (fork v3.6.0 vs upstream v3.8.2) and opened **Upgrade to 3.8.2** as a planned Active Project.
+- Merged `upstream/master` (FaceFusion 3.8.2) into local master. Resolved conflicts in `facefusion.ini`, `core.py`, `image_to_image.py`, `image_to_video.py`. Ported chunking + skip/retry into `to_video.process_disk_frames()` and image try/except into `to_image.process_image()`. Pinned `workflow_strategy = disk` so chunking still sees extracted frames. Updated content-analyser hash for the NSFW-disabled fork.
+- Documented upstream gap (fork v3.6.0 vs upstream v3.8.2) and opened **Upgrade to 3.8.2** as a planned Active Project — later the same session, the merge landed.
 - Renamed git remote `origin` → `upstream` (read-only facefusion/facefusion); added writable `origin` for fork commits.
 - Committed pending Find-better research artifact and agent onboarding files.
 

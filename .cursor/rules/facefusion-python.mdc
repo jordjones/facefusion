@@ -15,9 +15,10 @@ When editing files also changed upstream, keep fork-specific behavior:
 | File | Fork behavior |
 |------|---------------|
 | `workflows/chunk_runner.py` | Entire file is fork-only — do not delete |
-| `workflows/image_to_video.py` | Per-frame skip/retry + chunk env-var gating |
-| `workflows/image_to_image.py` | Processor try/except graceful failure |
-| `core.py` | `chunk-run` routing, `job_id` propagation |
+| `workflows/to_video.py` | Chunking + per-frame skip/retry on disk strategy |
+| `workflows/to_image.py` | Processor try/except graceful failure |
+| `workflows/image_to_video.py` | Chunk env-var early path for `chunk-run` |
+| `core.py` | `chunk-run` routing, `job_id` propagation, NSFW hash |
 | `program.py` | `chunk-run` subcommand registration |
 | `exit_helper.py` | Diagnostic probes |
 | `content_analyser.py` | NSFW gate disabled |
