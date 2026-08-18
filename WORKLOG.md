@@ -79,7 +79,7 @@ Last updated: 2026-08-18 (merged upstream v3.8.2)
 
 ### Upgrade to FaceFusion 3.8.2
 - **Goal:** Rebase 34 fork commits onto upstream v3.8.2 while preserving chunking, resilience, and Fix E config.
-- **Status:** `testing` — merge of `upstream/master` (tag 3.8.2) completed 2026-08-18; fork patches ported onto the new `to_video.py` / `to_image.py` workflow layer. Smoke + scoreboard verification still pending.
+- **Status:** `testing` — merge of `upstream/master` (tag 3.8.2) completed 2026-08-18; fork patches ported onto the new `to_video.py` / `to_image.py` workflow layer. 15s disk-strategy smoke render succeeded (`output/smoke-382-15s.mov`, 2/2 chunks, hard_exit 0); scoreboard eval pending.
 - **Context:** Merge brought in face tracker, processor-driven model loading, FFmpeg video manager, `workflow-strategy` (disk/memory), AV1, CoreML cache/fp16 fixes, VRAM leak fix. Conflicts resolved in `facefusion.ini`, `core.py`, `image_to_image.py`, `image_to_video.py`. Chunking now lives in `to_video.process_disk_frames()`; image try/except in `to_image.process_image()`.
 - **Approach:**
   1. Push 34 local commits to writable `origin` remote (Cursor-hosted or personal fork)
