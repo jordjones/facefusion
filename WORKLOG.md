@@ -93,7 +93,7 @@ Last updated: 2026-08-18 (merged upstream v3.8.2)
 - **Risk:** chunking architecture may need redesign against new `video_manager` / `workflow-strategy` in 3.8.0. Default `workflow_strategy` is `memory`; this fork pins `disk` so chunk subprocesses still see extracted frames.
 - **Files:** all fork-patched files under `facefusion/` (13 files), `tests/test_chunk_runner.py`, `facefusion.ini`
 - **Last session:** 2026-08-18
-- **Next:** run `tests/test_chunk_runner.py`, then a 10s disk-strategy smoke with `evaluate_swap.py`.
+- **Next:** full stride-1 scoreboard on frames 1800-2700 vs Fix E baseline; consider CoreML re-test now that upstream ships selective MLProgram per-model.
 
 ## Completed Workstreams
 
@@ -137,6 +137,9 @@ Last updated: 2026-08-18 (merged upstream v3.8.2)
 - Documented upstream gap (fork v3.6.0 vs upstream v3.8.2) and opened **Upgrade to 3.8.2** as a planned Active Project — later the same session, the merge landed.
 - Renamed git remote `origin` → `upstream` (read-only facefusion/facefusion); added writable `origin` for fork commits.
 - Committed pending Find-better research artifact and agent onboarding files.
+- Pushed 39 commits to `origin/master` (`jordjones/facefusion`).
+- Fixed `tools/evaluate_swap.py` for 3.8.2 `face_creator` rename; evaluator smoke on Run 04 window passed (median cosine 0.144).
+- Ran 15s headless smoke on `videos/My Movie 1 - Last 15s.mov` → `output/smoke-382-15s.mov`: 2/2 chunks, hard_exit 0, ~33 min wall time. Eval: 48/50 detected, median cosine 0.234, 95.8% frames <0.4.
 
 ### 2026-07-23
 - Opened new Active Project **Find better** (models/speed/settings research). Confirmed scope with user: stay in FaceFusion, target Apple **M4 Max**, deliver a ranked shortlist feeding the Ongoing quality scoreboard.
