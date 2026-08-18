@@ -1,0 +1,45 @@
+---
+description: Copy-paste-safe shell commands for FaceFusion
+alwaysApply: true
+---
+
+# Shell commands
+
+Chat wrap breaks pasted commands mid-token. Keep every copyable line ≤80 chars.
+
+## Pattern
+
+```bash
+d=~/Documents/facefusion
+cd "$d"
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate facefusion
+PY=/opt/anaconda3/envs/facefusion/bin/python
+```
+
+Then invoke `$PY facefusion.py ...` — never bare `python`.
+
+## Rules
+
+- Never break a path, SHA, URL, or flag across lines
+- Use `$HOME` or `~` to shorten paths
+- Put commands in a fenced block alone — no prose on the same lines
+- If continuation is needed, break only after a complete token with `\`
+
+## Headless swap example
+
+```bash
+d=~/Documents/facefusion
+cd "$d"
+source /opt/anaconda3/etc/profile.d/conda.sh
+conda activate facefusion
+PY=/opt/anaconda3/envs/facefusion/bin/python
+$PY facefusion.py headless-run \
+  --config-path facefusion.ini \
+  --target-path videos/example.mov \
+  --source-paths faces/source.jpeg \
+  --output-path output/example-out.mov \
+  --processors face_swapper
+```
+
+Target and output extensions must match.

@@ -1,6 +1,6 @@
 # FaceFusion Worklog
 
-Last updated: 2026-06-01 (Intensity/Kail smoke)
+Last updated: 2026-08-18 (Cursor agent onboarding + upgrade workstream)
 
 ## Ongoing Workstreams
 
@@ -31,6 +31,30 @@ Last updated: 2026-06-01 (Intensity/Kail smoke)
 
 ## Active Projects
 
+### Find better (models / speed / settings research)
+- **Goal:** Produce an evidence-backed, ranked shortlist of changes — swap model, execution provider/config, FaceFusion version, and settings — that raise output quality and cut render time on this hardware, then feed the winners into the Ongoing *Face-swap output quality* scoreboard for testing.
+- **Status:** `in-progress` — deep-research synthesized + keystone empirically tested & reverted 2026-07-23 (full report + results at `settings/2026-07-23-find-better-research.md`). Result: CoreML EP config can't give speed+determinism together on this stack; code reverted to CPU known-good. Paused overnight; awaiting pivot decision.
+- **Motivation:** Current stack underperforms on all three axes we care about — quality is only okay (identity flicker, dropouts), speed is brutal (~14.5k-frame / 8-min video = 3h27m), and the models/packages we lean on are ~2 years old. Suspicion that newer models/settings and unused hardware acceleration can fix all three.
+- **Scope (per 2026-07-23 decision):** Stay within FaceFusion (upgrading the FaceFusion/onnxruntime version is in-scope; switching to DeepFaceLab/ComfyUI/Rope/etc. is out). Hardware target is fixed: Apple **M4 Max** (40-core GPU, 16-core Neural Engine, 128 GB unified, Metal 3 / MPS, **no CUDA**).
+- **Grounding facts:**
+  - Fork is at FaceFusion **v3.6.0** (upstream `facefusion/facefusion`), not as old as assumed — full modern roster present.
+  - Swappers available: `inswapper_128` / `inswapper_128_fp16`, `hyperswap_1a/1b/1c_256`, `ghost_1/2/3_256`, `simswap_256` / `simswap_unofficial_512`, `blendswap_256`, `uniface_256`, `hififace_unofficial_256`.
+  - Enhancers available: `gfpgan_1.2/1.3/1.4`, `codeformer`, `gpen_bfr_256/512/1024/2048`, `restoreformer_plus_plus`.
+  - **Prime speed lead:** we force **CPU-only** (inswapper_128_fp16, no enhancer) to dodge CoreML FP16 non-determinism → the 40-core GPU + Neural Engine sit idle for the entire render. `facefusion/execution.py` configures the CoreML EP with only `{SpecializationStrategy: FastPrediction}` + a model-cache dir — **no `MLComputeUnits` or model-format control**, the likely direct cause of the FP16 flicker we papered over.
+- **Deliverable:** A ranked recommendations report + the top candidates staged as concrete test configs for the Ongoing scoreboard.
+- **Files:** `facefusion/execution.py`, `facefusion/processors/modules/face_swapper/*`, `facefusion/processors/modules/face_enhancer/*`, `facefusion.ini`, `tools/evaluate_swap.py` (scoring), `settings/` registry.
+- **Last session:** 2026-07-23
+- **Next (pivot options):** (a) **Quality on CPU** — A/B `hyperswap_1a_256` vs `inswapper_128_fp16` + reference-lock + retinaface (provider-independent, no GPU needed); (b) **Speed via 3.7.1 upgrade** — its multi-frame-processor + processor-driven-model-loading + selective-MLProgram refactor is the real speed path, but requires the fork processor-layer rebase; (c) **Speed on CPU** — attack the ~30–40 s/chunk model-reload overhead (chunk-size tuning vs silent-death crash risk). Speed via CoreML EP config is closed (tested, dead end).
+
+- **Agent:** claude · **Role:** researcher / implementer / verifier · **Session/source:** session_017Ph3Ah6BTEHD8gTqY2wkUS · **Continuity layers updated:** repo-local (`WORKLOG.md` + `settings/2026-07-23-find-better-research.md`), project-local Obsidian (`facefusion/_log.md`), Agent Memory session note (`Sessions/2026-07-23-0314-claude-facefusion.md`) · **Claimed current-session paths:** `WORKLOG.md`, `settings/2026-07-23-find-better-research.md`, `output/eval-smoke-coreml.csv`, `output/eval-smoke-cpugpu.csv` (code files `facefusion/execution.py` + `facefusion.ini` were edited then reverted — git-clean).
+
+#### Findings (2026-07-23)
+- **Root cause is shared (hypothesis) — but the config fix was DISPROVED for speed.** 3.6.0's CoreML EP omits `ModelFormat` → defaults to `NeuralNetwork` → silent FP16 on GPU/ANE → identity shimmer; forcing CPU-only fixed flicker but idled the GPU. FaceFusion's own 3.7.0 fix is `ModelFormat=MLProgram` (typed FP32). **Tested 2026-07-23:** MLProgram needs `RequireStaticInputShapes` to compile → forces CPU fallback → deterministic (100% frames <0.4 cosine, median 0.143) but **~1.06 fps, not faster than CPU**; `NeuralNetwork`+`CPUAndGPU` is **~1.90 fps but flickers 37% of frames** (p95 cosine 1.02). CoreML EP config cannot give speed+determinism together on this stack.
+- **Hyperswap failure was variant choice:** `hyperswap_1c_256` (tested) is worst for video ("misses frames"); `hyperswap_1a_256` (FF default since 3.3.2) detects best = fewest dropouts.
+- **No new models past 3.6.0:** latest is 3.7.1 (2026-07-05); 3.6.1/3.7.0/3.7.1 add no swap/enhancer models. Upgrade's unique payload = 3.7.0 face tracker (dropout refill) + processor speed refactor, but that rewrote the processor layer → conflicts with this fork's chunking patches (high effort). INI schema delta is trivial.
+- **Enhancer-off validated** by peer-reviewed video-restoration literature (image restorers flicker); use pixel-boost for quality. `box occlusion region` masks and pixel-boost 512 are already set in `facefusion.ini`.
+- **Prime speed lever tested & reverted:** patched the `facefusion/execution.py` CoreML block + `facefusion.ini` `execution_providers`; runtime ORT is **1.24.3** in the conda env (`/opt/anaconda3/envs/facefusion/bin/python`). The MLProgram/CoreML path was applied, benchmarked (3 render+eval cycles on a 10s slice), and reverted to CPU known-good — dead end for speed. Full 3-way results in `settings/2026-07-23-find-better-research.md`.
+
 ### Frame-tolerant video processing
 - **Goal:** A single bad frame produces one unmodified frame in the output video, not an aborted render. Transient failures get one serial retry.
 - **Status:** `testing` — skip-on-error + serial retry shipped; same loop now also runs inside each chunk subprocess slice.
@@ -52,6 +76,24 @@ Last updated: 2026-06-01 (Intensity/Kail smoke)
 #### Findings
 - Per-frame skip is safe: `process_temp_frame` only writes the temp frame on success (`image_to_video.py:193`), so a raised exception leaves the original extracted frame on disk. ffmpeg's `image2` demuxer (`ffmpeg.py:243`) merges whatever sequential frames exist — skipped frames appear unmodified in the output.
 - Failure-rate guard: aborts the run with error code 1 if more than 50% of frames fail (constant `FRAME_FAILURE_ABORT_THRESHOLD` in `image_to_video.py`), so a fundamentally broken config doesn't silently produce a useless video.
+
+### Upgrade to FaceFusion 3.8.2
+- **Goal:** Rebase 34 fork commits onto upstream v3.8.2 while preserving chunking, resilience, and Fix E config.
+- **Status:** `planned` — tracked separately from Find better; agent onboarding complete first.
+- **Context:** Fork is at v3.6.0; upstream is v3.8.2 (13 upstream commits since merge-base `57fcb86`, 118 files changed). High-conflict files: `core.py`, `execution.py`, `program.py`, `workflows/image_to_video.py`, `workflows/image_to_image.py`. Upstream added `workflows/to_video.py`, `to_image.py`, `workflows/core.py`, face tracker, video manager.
+- **Approach:**
+  1. Push 34 local commits to writable `origin` remote (Cursor-hosted or personal fork)
+  2. Branch `upgrade/3.8.2` from current master
+  3. Merge or rebase `upstream/master` (tag `3.8.2`)
+  4. Resolve conflicts file-by-file — prioritize `chunk_runner.py` → new `workflows/to_video.py`, upstream `execution.py` MLProgram fix, `image_to_video.py` resilience hooks
+  5. Port `tests/test_chunk_runner.py`; run upstream test suite
+  6. Smoke: 10s slice + `evaluate_swap.py` scoreboard pass
+  7. Full render benchmark vs Fix E baseline
+- **Expected wins:** upstream CoreML fp16 fixes (3.7.0, 3.8.1), face tracker dropout refill (3.7.0), processor-driven model loading (~30–40 s/chunk reload), FFmpeg 9 compatibility, VRAM leak fix.
+- **Risk:** chunking architecture may need redesign against new `video_manager` / `workflow-strategy` in 3.8.0.
+- **Files:** all fork-patched files under `facefusion/` (13 files), `tests/test_chunk_runner.py`, `facefusion.ini`
+- **Last session:** 2026-08-18
+- **Next:** create writable remote, push fork commits, open `upgrade/3.8.2` branch.
 
 ## Completed Workstreams
 
@@ -88,6 +130,22 @@ Last updated: 2026-06-01 (Intensity/Kail smoke)
 (none)
 
 ## Session Log
+
+### 2026-08-18
+- Introduced Cursor agent infrastructure: `AGENTS.md` (thin pointer doc), `.cursor/rules/` (project, python, shell rules).
+- Documented upstream gap (fork v3.6.0 vs upstream v3.8.2) and opened **Upgrade to 3.8.2** as a planned Active Project.
+- Renamed git remote `origin` → `upstream` (read-only facefusion/facefusion); added writable `origin` for fork commits.
+- Committed pending Find-better research artifact and agent onboarding files.
+
+### 2026-07-23
+- Opened new Active Project **Find better** (models/speed/settings research). Confirmed scope with user: stay in FaceFusion, target Apple **M4 Max**, deliver a ranked shortlist feeding the Ongoing quality scoreboard.
+- Ran four parallel web-research threads and synthesized them into `settings/2026-07-23-find-better-research.md`.
+- Key result: **flicker and CPU-only slowness are the same root cause** — 3.6.0's CoreML EP omits `ModelFormat` (defaults to `NeuralNetwork` → silent FP16 on GPU/ANE → shimmer). Fix = `ModelFormat=MLProgram` (typed FP32, deterministic, ~0 speed cost); this is FaceFusion's own 3.7.0 fix. Lets us drop CPU-only and use the 40-core GPU.
+- Also: hyperswap failure was variant choice (`1c` worst for video; `1a` best-detecting); no new models exist past 3.6.0 (latest 3.7.1); enhancer-off validated by video-restoration literature; masks + pixel-boost 512 already set.
+- Staged (not applied) a one-line `execution.py` MLProgram patch + `execution_providers = cpu → coreml`. User chose "show diff first, then apply" — diff presented, awaiting go before touching code.
+- Applied the keystone (MLProgram + `execution_providers=coreml`) and ran Smoke 1 on a 10s/300-frame slice via the conda env (`/opt/anaconda3/envs/facefusion/bin/python`; hook blocks bare `python`, so absolute path used). Runtime ORT is 1.24.3.
+- **Smoke 1 experimental result (three configs, scored with evaluate_swap.py):** (1) global MLProgram fails to compile (unbounded-dimension on Apple MPS) → added `RequireStaticInputShapes=1` → **deterministic, 100% frames <0.4 cosine (median 0.143) but ~1.06 fps, not faster than CPU**; (2) `NeuralNetwork` + `MLComputeUnits=CPUAndGPU` → **~1.90 fps but flickers — only 62.5% frames <0.4, p95 1.02**. Conclusion: CoreML EP config cannot give both speed and determinism on this stack. Reverted execution.py + ini to CPU known-good (git diff clean). Details in `settings/2026-07-23-find-better-research.md`.
+- Next: pivot decision — quality-on-CPU model/settings A/B, vs the 3.7.1 speed-refactor upgrade (fork rebase), vs CPU chunk-reload-overhead tuning.
 
 ### 2026-06-01
 - Created `videos/intensity_120.mp4` and `videos/intensity_60.mp4` from the last 120 and 60 seconds of `videos/intensity.mp4`.

@@ -1,0 +1,40 @@
+---
+description: FaceFusion personal fork — identity, docs, safety
+alwaysApply: true
+---
+
+# FaceFusion personal fork
+
+This is a **personal fork** of FaceFusion v3.6.0 (upstream at v3.8.2), not vanilla upstream.
+
+## Read first
+
+- `AGENTS.md` — cross-agent entrypoint
+- `WORKLOG.md` — live state and next actions
+- `settings.md` — config-of-record
+- `docs/architecture.md` — pipeline and directory map
+
+## Runtime
+
+Use conda env `facefusion`. Invoke Python as:
+
+```bash
+/opt/anaconda3/envs/facefusion/bin/python facefusion.py ...
+```
+
+Never bare `python`.
+
+## Fork patches — preserve unless explicitly asked
+
+- Subprocess chunking (`chunk_runner.py`, `chunk-run` CLI)
+- Per-frame skip/retry in `image_to_video.py`
+- UI subprocess decoupling (`uis/ui_subprocess.py`)
+- NSFW gate disabled in `content_analyser.py`
+- Diagnostic probes in `exit_helper.py`
+
+## Safety
+
+- Ask before killing renders or clearing `.temp/` frames mid-recovery
+- Target/output extensions must match
+- No force-push; push only to writable `origin`, never `upstream`
+- Update `WORKLOG.md` when shipping meaningful changes
