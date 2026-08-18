@@ -16,7 +16,7 @@ from typing import Optional
 
 import numpy as np
 
-from facefusion import face_analyser, face_detector, face_landmarker, face_recognizer, logger, state_manager
+from facefusion import face_creator, face_detector, face_landmarker, face_recognizer, logger, state_manager
 from facefusion.args import apply_args
 from facefusion.face_selector import calculate_face_distance
 from facefusion.program import create_program
@@ -38,7 +38,7 @@ def source_embedding(source_path: str) -> np.ndarray:
     image = read_static_image(source_path)
     if image is None:
         raise RuntimeError(f'could not read source image: {source_path}')
-    faces = face_analyser.get_many_faces([image])
+    faces = face_creator.get_many_faces([image])
     if not faces:
         raise RuntimeError('no face detected in source image')
     return np.asarray(faces[0].embedding_norm)
@@ -83,7 +83,7 @@ def evaluate(source: str, target: str, samples: int, csv_path: Optional[str], re
         if frame is None:
             rows.append({'frame': idx, 'detected': 0, 'face_count': 0, 'detector_score': None, 'landmarker_score': None, 'cosine_distance': None})
             continue
-        faces = face_analyser.get_many_faces([frame])
+        faces = face_creator.get_many_faces([frame])
         face = best_face_by_source_match(faces, src_emb) if ref_match else best_face_by_detector(faces)
         if face is None:
             rows.append({'frame': idx, 'detected': 0, 'face_count': 0, 'detector_score': None, 'landmarker_score': None, 'cosine_distance': None})
